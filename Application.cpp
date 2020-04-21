@@ -1,0 +1,329 @@
+#include "Application.h"
+#include "resource.h"
+
+INT_PTR CALLBACK About(HWND, UINT, WPARAM, LPARAM);
+static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+
+Application::Application() :
+	hInstance(nullptr),
+	hWnd(nullptr),
+	hInst(nullptr),
+	szTitle{},
+	szWindowClass{},
+	m_OpenGL(nullptr),
+	m_Input(nullptr),
+	m_Graphics(nullptr)
+{
+}
+
+Application::Application(const Application& other) :
+	hInstance(nullptr),
+	hWnd(nullptr),
+	hInst(nullptr),
+	szTitle{},
+	szWindowClass{},
+	m_OpenGL(nullptr),
+	m_Input(nullptr),
+	m_Graphics(nullptr)
+{
+}
+
+bool Application::init()
+{
+	// Create the OpenGL object.
+	m_OpenGL = new OpenGL;
+	if (!m_OpenGL)
+	{
+		return false;
+	}
+
+	// Create the window the application will be using and also initialize OpenGL.
+	int screenWidth = 0;
+	int screenHeight = 0;
+	if (!initWindow(m_OpenGL, screenWidth, screenHeight))
+	{
+		MessageBox(hWnd, L"Could not initialize the window.", L"Error", MB_OK);
+		return false;
+	}
+
+	// Create the input object.  This object will be used to handle reading the input from the user.
+	m_Input = new Input;
+	if (!m_Input)
+	{
+		return false;
+	}
+
+	// Initialize the input object.
+	m_Input->initialize();
+
+	// Create the graphics object.  This object will handle rendering all the graphics for this application.
+	m_Graphics = new Graphics;
+	if (!m_Graphics)
+	{
+		return false;
+	}
+
+	// Initialize the graphics object.
+	 return m_Graphics->initialize(m_OpenGL, hWnd);
+}
+
+void Application::close()
+{
+	// Release the graphics object.
+	if (m_Graphics)
+	{
+		m_Graphics->shutdown();
+		delete m_Graphics;
+		m_Graphics = nullptr;
+	}
+
+	// Release the input object.
+	if (m_Input)
+	{
+		delete m_Input;
+		m_Input = nullptr;
+	}
+
+	// Release the OpenGL object.
+	if (m_OpenGL)
+	{
+		m_OpenGL->shutdown(hWnd);
+		delete m_OpenGL;
+		m_OpenGL = nullptr;
+	}
+
+	// Shutdown the window.
+	closeWindow();
+}
+
+void Application::run() const
+{
+	MSG msg = {};
+
+	// Loop until there is a quit message from the window or the user.
+	bool done = false;
+	while (!done)
+	{
+		// Handle the windows messages.
+		if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+
+		// If windows signals to end the application then exit out.
+		if (msg.message == WM_QUIT)
+		{
+			done = true;
+		}
+		else
+		{
+			// Otherwise do the frame processing.
+			if (!frame())
+			{
+				done = true;
+			}
+		}
+
+	}
+
+}
+
+bool Application::frame() const
+{
+	// Check if the user pressed escape and wants to exit the application.
+	if (m_Input->isKeyDown(VK_ESCAPE))
+	{
+		return false;
+	}
+
+	// Do the frame processing for the graphics object.
+	bool result = m_Graphics->frame();
+	if (!result)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+LRESULT CALLBACK Application::MessageHandler(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) const
+{
+	switch (message)
+	{
+	case WM_COMMAND:
+	{
+		int wmId = LOWORD(wParam);
+		// Parse the menu selections:
+		switch (wmId)
+		{
+		case IDM_ABOUT:
+			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+			break;
+		case IDM_EXIT:
+			PostQuitMessage(0);
+			return 0;
+		default:
+			return DefWindowProc(hWnd, message, wParam, lParam);
+		}
+	}
+	break;
+	// Check if a key has been pressed on the keyboard.
+	case WM_KEYDOWN:
+		// If a key is pressed send it to the input object so it can record that state.
+		m_Input->keyDown((unsigned int)wParam);
+		return 0;
+
+		// Check if a key has been released on the keyboard.
+	case WM_KEYUP:
+		// If a key is released then send it to the input object so it can unset the state for that key.
+		m_Input->keyUp((unsigned int)wParam);
+		return 0;
+	default:
+		;
+	}
+
+	// Any other messages send to the default message handler as our application won't make use of them.
+	return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+bool Application::initWindow(OpenGL* OpenGL, int& screenWidth, int& screenHeight)
+{
+	// Get an external pointer to this object.	
+	applicationHandle = this;
+
+	// Get the instance of this application.
+	hInstance = GetModuleHandle(nullptr);
+
+	LoadStringW(hInstance, IDS_APP_TITLE, szTitle, maxLoadString);
+	LoadStringW(hInstance, IDC_OPENGLWIN32, szWindowClass, maxLoadString);
+
+	// Setup the windows class with default settings.
+	WNDCLASSEX wcex;
+	wcex.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+	wcex.lpfnWndProc = WndProc;
+	wcex.cbClsExtra = 0;
+	wcex.cbWndExtra = 0;
+	wcex.hInstance = hInstance;
+	wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_OPENGLWIN32));
+	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_OPENGLWIN32);
+	wcex.lpszClassName = szWindowClass;
+	wcex.cbSize = sizeof(WNDCLASSEX);
+
+	// Register the window class.
+	RegisterClassExW(&wcex);
+
+	// Create a temporary window for the OpenGL extension setup.
+	hWnd = CreateWindowW(szWindowClass, szTitle, WS_POPUP,
+		0, 0, 640, 480, nullptr, nullptr, hInstance, nullptr);
+	if (hWnd == nullptr)
+	{
+		return false;
+	}
+
+	// Don't show the window.
+	ShowWindow(hWnd, SW_HIDE);
+
+	// Initialize a temporary OpenGL window and load the OpenGL extensions.
+	bool result = OpenGL->initializeExtensions(hWnd);
+	if (!result)
+	{
+		MessageBox(hWnd, L"Could not initialize the OpenGL extensions.", L"Error", MB_OK);
+		return false;
+	}
+
+	// Release the temporary window now that the extensions have been initialized.
+	DestroyWindow(hWnd);
+	hWnd = nullptr;
+
+	// Determine the resolution of the clients desktop screen.
+	screenWidth = GetSystemMetrics(SM_CXSCREEN);
+	screenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+	// Create the window with the screen settings and get the handle to it.
+	hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+	if (hWnd == nullptr)
+	{
+		return false;
+	}
+
+	RECT rect;
+	if (GetWindowRect(hWnd, &rect))
+	{
+		screenWidth = rect.right - rect.left;
+		screenHeight = rect.bottom - rect.top;
+	}
+
+	// Initialize OpenGL now that the window has been created.
+	result = m_OpenGL->initializeOpenGl(hWnd, screenWidth, screenHeight, SCREEN_DEPTH, SCREEN_NEAR, VSYNC_ENABLED);
+	if (!result)
+	{
+		MessageBox(hWnd, L"Could not initialize OpenGL, check if video card supports OpenGL 4.0.", L"Error", MB_OK);
+		return false;
+	}
+
+	// Bring the window up on the screen and set it as main focus.
+	ShowWindow(hWnd, SW_SHOW);
+	SetForegroundWindow(hWnd);
+	SetFocus(hWnd);
+
+	return true;
+}
+
+void Application::closeWindow()
+{
+	// Remove the window.
+	DestroyWindow(hWnd);
+	hWnd = nullptr;
+
+	// Remove the application instance.
+	UnregisterClass(szWindowClass, hInstance);
+	hInstance = nullptr;
+
+	// Release the pointer to this class.
+	applicationHandle = nullptr;
+
+}
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
+	{
+		// Check if the window is being closed.
+	case WM_CLOSE:
+	{
+		PostQuitMessage(0);
+		return 0;
+	}
+
+	// All other messages pass to the message handler in the system class.
+	default:
+		return applicationHandle->MessageHandler(hWnd, message, wParam, lParam);
+	}
+}
+
+// Message handler for about box.
+INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	UNREFERENCED_PARAMETER(lParam);
+	switch (message)
+	{
+	case WM_INITDIALOG:
+		return (INT_PTR)TRUE;
+
+	case WM_COMMAND:
+		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+		{
+			EndDialog(hDlg, LOWORD(wParam));
+			return (INT_PTR)TRUE;
+		}
+		break;
+	default: 
+		;
+	}
+	return (INT_PTR)FALSE;
+}
