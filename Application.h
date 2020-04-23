@@ -1,34 +1,31 @@
 #pragma once
 
 #include "OpenGL.h"
-#include "Input.h"
 #include "Graphics.h"
 
 class Application
 {
 public:
-	Application();
-	Application(const Application&);
-	~Application() = default;
-	bool init();
-	void close();
-	void run() const;
-	LRESULT CALLBACK MessageHandler(HWND, UINT, WPARAM, LPARAM) const;
+    Application();
+    ~Application();
+    void run();
+    void handleKey(MSG& msg);
+    LRESULT CALLBACK wndMsgHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+    INT_PTR CALLBACK dlgMsgHandler(HWND hDlgWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 private:
-	bool frame() const;
-	bool initWindow(OpenGL*, int&, int&);
-	void closeWindow();
+    bool frame() const;
+    bool initWindow();
+    void closeWindow();
+    void resizeViewport() const;
 
-	HINSTANCE hInstance;
-	HWND hWnd;
-	static const int maxLoadString = 100;
-	HINSTANCE hInst;
-	WCHAR szTitle[maxLoadString];
-	WCHAR szWindowClass[maxLoadString];
-	OpenGL* m_OpenGL;
-	Input* m_Input;
-	Graphics* m_Graphics;
+    static const int maxLoadString = 100;
+    HINSTANCE hInstance;
+    HWND hWnd;
+    WCHAR title[maxLoadString];
+    WCHAR className[maxLoadString];
+    OpenGL* context;
+    Graphics* graph;
 };
 
 static Application* applicationHandle = nullptr;

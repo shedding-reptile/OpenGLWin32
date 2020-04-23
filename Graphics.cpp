@@ -1,175 +1,154 @@
+#define _USE_MATH_DEFINES
+#include <cmath>
+#include <algorithm>
 #include "Graphics.h"
+#include "resource.h"
+#include "Application.h"
 
-Graphics::Graphics()
+Graphics::Graphics(OpenGL* ctx, HWND parent) :
+    hWnd(nullptr),
+    program(nullptr),
+    aspect(1.0f)
 {
-	m_OpenGL = nullptr;
-	m_Camera = nullptr;
-	m_Model = nullptr;
-	m_LightShader = nullptr;
-	m_Light = nullptr;
+    context = ctx;
+    hWnd = parent;
+
+    RECT rect;
+    if (GetWindowRect(hWnd, &rect))
+    {
+        const int width = rect.right - rect.left;
+        const int height = rect.bottom - rect.top;
+
+        aspect = static_cast<float>(width) / static_cast<float>(height);
+    }
+
+    program = new Shader(context, hWnd, IDR_SHADER_V, IDR_SHADER_F);
+
+    float vertices[] =
+    {
+         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
+         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,
+        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f
+    };
+    unsigned int indices[] =
+    {
+        0, 1, 3,
+        1, 2, 3
+    };
+
+    context->glGenVertexArrays(1, &vao);
+    context->glGenBuffers(1, &vbo);
+    context->glGenBuffers(1, &ebo);
+
+    context->glBindVertexArray(vao);
+
+    context->glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    context->glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    context->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    context->glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    context->glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), static_cast<void*>(nullptr));
+    context->glEnableVertexAttribArray(0);
+    
+    context->glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
+    context->glEnableVertexAttribArray(1);
+    
+    context->glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), reinterpret_cast<void*>(6 * sizeof(float)));
+    context->glEnableVertexAttribArray(2);
+            
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    const HBITMAP bmpFile = LoadBitmap(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDB_BITMAP1));
+    const HDC dc = CreateCompatibleDC(GetDC(nullptr));
+    SelectObject(dc, bmpFile);
+    BITMAP bmp;
+    GetObject(bmpFile, sizeof(BITMAP), &bmp);
+
+    BITMAPINFOHEADER bmpInfo;
+    bmpInfo.biSize = sizeof(BITMAPINFOHEADER);
+    bmpInfo.biWidth = bmp.bmWidth;
+    bmpInfo.biHeight = bmp.bmHeight;
+    bmpInfo.biPlanes = 1;
+    bmpInfo.biBitCount = bmp.bmBitsPixel;
+    bmpInfo.biCompression = BI_RGB;
+    bmpInfo.biSizeImage = 0;
+    bmpInfo.biXPelsPerMeter = 0;
+    bmpInfo.biYPelsPerMeter = 0;
+    bmpInfo.biClrUsed = 0;
+    bmpInfo.biClrImportant = 0;
+
+    const DWORD size = ((bmp.bmWidth * bmpInfo.biBitCount + 31) / 32) * 4 * bmp.bmHeight;
+    const HANDLE dib = GlobalAlloc(GHND, size);
+    if(dib)
+    {
+        char* data = static_cast<char*>(GlobalLock(dib));
+
+        if(data)
+        {
+            GetDIBits(dc, bmpFile, 0, static_cast<UINT>(bmp.bmHeight), data, reinterpret_cast<BITMAPINFO*>(&bmpInfo), DIB_RGB_COLORS);
+            const int width = bmp.bmWidth;
+            const int height = bmp.bmHeight;
+
+            if (data)
+            {
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, data);
+                context->glGenerateMipmap(GL_TEXTURE_2D);
+            }
+
+            GlobalUnlock(data);
+        }
+    }
+   
+   GlobalFree(dib);
 }
-
-
-Graphics::Graphics(const Graphics& other): m_OpenGL(nullptr), m_Camera(nullptr), m_Model(nullptr),
-                                                          m_LightShader(nullptr),
-                                                          m_Light(nullptr)
-{
-}
-
 
 Graphics::~Graphics()
 {
+    delete program;
 }
 
-
-bool Graphics::initialize(OpenGL* OpenGL, HWND hwnd)
+bool Graphics::render() const
 {
-	// Store a pointer to the OpenGL class object.
-	m_OpenGL = OpenGL;
+    program->useProgram();
 
-	// Create the camera object.
-	m_Camera = new Camera;
-	if(!m_Camera)
-	{
-		return false;
-	}
+    context->beginScene(0.3f, 0.3f, 0.3f, 1.0f);
 
-	// Set the initial position of the camera.
-	m_Camera->setPosition(0.0f, 0.0f, -10.0f);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    
+    context->glBindVertexArray(vao);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+ 
+    context->endScene();
 
-	// Create the model object.
-	m_Model = new Model;
-	if(!m_Model)
-	{
-		return false;
-	}
-
-	// Initialize the model object.
-	bool result = m_Model->initialize(m_OpenGL, (char*)"cube.txt", (char*)"opengl.tga", 0,
-	                                  true);
-	if(!result)
-	{
-		MessageBox(hwnd, L"Could not initialize the model object.", L"Error", MB_OK);
-		return false;
-	}
-	
-	// Create the light shader object.
-	m_LightShader = new Shader;
-	if(!m_LightShader)
-	{
-		return false;
-	}
-
-	// Initialize the light shader object.
-	result = m_LightShader->initialize(m_OpenGL, hwnd);
-	if(!result)
-	{
-		MessageBox(hwnd, L"Could not initialize the light shader object.", L"Error", MB_OK);
-		return false;
-	}
-
-	// Create the light object.
-	m_Light = new Light;
-	if(!m_Light)
-	{
-		return false;
-	}
-
-	// Initialize the light object.
-	m_Light->setDiffuseColor(1.0f, 1.0f, 1.0f, 1.0f);
-	m_Light->setDirection(1.0f, 0.0f, 0.0f);
-	m_Light->setAmbientLight(0.15f, 0.15f, 0.15f, 1.0f);
-
-	return true;
+    return true;
 }
 
-
-void Graphics::shutdown()
+void Graphics::resize(unsigned width, unsigned height) const
 {
-	// Release the light object.
-	if(m_Light)
-	{
-		delete m_Light;
-	}
+    if (context)
+    {
+        unsigned w;
+        unsigned h;
 
-	// Release the light shader object.
-	if(m_LightShader)
-	{
-		m_LightShader->shutdown(m_OpenGL);
-		delete m_LightShader;
-	}
-
-	// Release the model object.
-	if(m_Model)
-	{
-		m_Model->shutdown(m_OpenGL);
-		delete m_Model;
-	}
-
-	// Release the camera object.
-	if(m_Camera)
-	{
-		delete m_Camera;
-	}
-
-	// Release the pointer to the OpenGL class object.
-	m_OpenGL = nullptr;
-}
-
-bool Graphics::frame() const
-{
-	static float rotation = 0.0f;
-
-	// Update the rotation variable each frame.
-	rotation += 0.0174532925f * 1.0f;
-	if(rotation > 360.0f)
-	{
-		rotation -= 360.0f;
-	}
-
-	// Render the graphics scene.
-	return render(rotation);
-}
-
-
-bool Graphics::render(float rotation) const
-{
-	float worldMatrix[16];
-	float viewMatrix[16];
-	float projectionMatrix[16];
-	float lightDirection[3];
-	float diffuseLightColor[4];
-	float ambientLight[4];
-
-
-	// Clear the buffers to begin the scene.
-	m_OpenGL->beginScene(0.0f, 0.0f, 0.0f, 1.0f);
-
-	// Generate the view matrix based on the camera's position.
-	m_Camera->render();
-
-	// Get the world, view, and projection matrices from the opengl and camera objects.
-	m_OpenGL->getWorldMatrix(worldMatrix);
-	m_Camera->getViewMatrix(viewMatrix);
-	m_OpenGL->getProjectionMatrix(projectionMatrix);
-
-	// Get the light properties.
-	m_Light->getDirection(lightDirection);
-	m_Light->getDiffuseColor(diffuseLightColor);
-	m_Light->getAmbientLight(ambientLight);
-
-	// Rotate the world matrix by the rotation value so that the triangle will spin.
-	m_OpenGL->matrixRotationY(worldMatrix, rotation);
-
-	// Set the light shader as the current shader program and set the matrices that it will use for rendering.
-	m_LightShader->setShader(m_OpenGL);
-	m_LightShader->setShaderParameters(m_OpenGL, worldMatrix, viewMatrix, projectionMatrix, 0, lightDirection, diffuseLightColor, ambientLight);
-
-	// Render the model using the light shader.
-	m_Model->render(m_OpenGL);
-	
-	// Present the rendered scene to the screen.
-	m_OpenGL->endScene();
-
-	return true;
+        if (width / aspect <= height)
+        {
+            w = static_cast<unsigned>(height * aspect);
+            h = height;
+        }
+        else
+        {
+            w = width;
+            h = static_cast<unsigned>(width / aspect);
+        }
+        context->resize(w, h);
+    }
 }

@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "OpenGLWin32.h"
+#include "OpenGL2DWin32.h"
 #include "Application.h"
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -12,23 +12,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 	UNREFERENCED_PARAMETER(nCmdShow);
 
-	// Create the system object.
-	Application* app = new Application;
-	if (!app)
-	{
-		return 0;
-	}
-
-	// Initialize and run the system object.
-	if (app->init())
-	{
-		app->run();
-	}
-
-	// Shutdown and release the system object.
-	app->close();
-	delete app;
-	app = nullptr;
-
+    try
+    {
+        Application app;
+        app.run();
+    }
+    catch (const TCHAR* e)
+    {
+    	MessageBox(nullptr, e, L"Error", MB_OK);
+    }
+	
 	return 0;
 }

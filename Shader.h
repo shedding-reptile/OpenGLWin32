@@ -1,25 +1,23 @@
 #pragma once
 
 #include "OpenGL.h"
+#include <string>
 
 class Shader
 {
 public:
-	Shader();
-	Shader(const Shader&);
-	~Shader();
-	bool initialize(OpenGL*, HWND);
-	void shutdown(OpenGL*) const;
-	void setShader(OpenGL*) const;
-	bool setShaderParameters(OpenGL*, float*, float*, float*, int, float*, float*, float*) const;
+    Shader(OpenGL* ctx, HWND hWnd, int vertexShader, int fragmentShader);
+    ~Shader();
+    void useProgram() const;
 
 private:
-	bool initializeShader(const char*, const char*, OpenGL*, HWND);
-	static void outputShaderErrorMessage(OpenGL*, HWND, unsigned int);
-	static void outputLinkerErrorMessage(OpenGL*, HWND, unsigned int);
-	void shutdownShader(OpenGL*) const;
+    bool initializeShader(HWND hWnd, const char* vertexShaderBuffer, const char* fragmentShaderBuffer);
+    void outputShaderError(HWND hWnd, unsigned shaderId) const;
+    void outputLinkerError(HWND hWnd, unsigned programId) const;
+    static void showMessage(HWND hWnd, std::string& log);
 
-	unsigned int m_vertexShader;
-	unsigned int m_fragmentShader;
-	unsigned int m_shaderProgram;
+    unsigned vertShader;
+    unsigned fragShader;
+    unsigned program;
+    OpenGL* context;
 };
