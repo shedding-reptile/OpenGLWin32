@@ -2,6 +2,7 @@
 
 #include "OpenGL.h"
 #include "Shader.h"
+#include "imgui_impl_win32.h"
 
 class Graphics
 {
@@ -21,4 +22,6 @@ private:
     unsigned int vbo;
     unsigned int ebo;
     unsigned int texture;
+    int width;
+    int height;
 };

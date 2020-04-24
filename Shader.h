@@ -12,8 +12,8 @@ public:
 
 private:
     bool initializeShader(HWND hWnd, const char* vertexShaderBuffer, const char* fragmentShaderBuffer);
-    void outputShaderError(HWND hWnd, unsigned shaderId) const;
-    void outputLinkerError(HWND hWnd, unsigned programId) const;
+    static void outputShaderError(HWND hWnd, unsigned shaderId);
+    static void outputLinkerError(HWND hWnd, unsigned programId);
     static void showMessage(HWND hWnd, std::string& log);
 
     unsigned vertShader;

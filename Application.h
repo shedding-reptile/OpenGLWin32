@@ -1,6 +1,5 @@
 #pragma once
 
-#include "OpenGL.h"
 #include "Graphics.h"
 
 class Application
@@ -8,11 +7,9 @@ class Application
 public:
     Application();
     ~Application();
-    void run();
-    void handleKey(MSG& msg);
-    LRESULT CALLBACK wndMsgHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-    INT_PTR CALLBACK dlgMsgHandler(HWND hDlgWnd, UINT message, WPARAM wParam, LPARAM lParam);
-
+    void run() const;
+    LRESULT CALLBACK wndMsgHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) const;
+    
 private:
     bool frame() const;
     bool initWindow();

@@ -14,7 +14,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     try
     {
-        Application app;
+        const Application app;
         app.run();
     }
     catch (const TCHAR* e)

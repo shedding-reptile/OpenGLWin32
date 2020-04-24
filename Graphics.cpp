@@ -3,7 +3,7 @@
 #include <algorithm>
 #include "Graphics.h"
 #include "resource.h"
-#include "Application.h"
+#include "imgui_impl_opengl3.h"
 
 Graphics::Graphics(OpenGL* ctx, HWND parent) :
     hWnd(nullptr),
@@ -16,8 +16,8 @@ Graphics::Graphics(OpenGL* ctx, HWND parent) :
     RECT rect;
     if (GetWindowRect(hWnd, &rect))
     {
-        const int width = rect.right - rect.left;
-        const int height = rect.bottom - rect.top;
+        width = rect.right - rect.left;
+        height = rect.bottom - rect.top;
 
         aspect = static_cast<float>(width) / static_cast<float>(height);
     }
@@ -37,26 +37,26 @@ Graphics::Graphics(OpenGL* ctx, HWND parent) :
         1, 2, 3
     };
 
-    context->glGenVertexArrays(1, &vao);
-    context->glGenBuffers(1, &vbo);
-    context->glGenBuffers(1, &ebo);
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glGenBuffers(1, &ebo);
 
-    context->glBindVertexArray(vao);
+    glBindVertexArray(vao);
 
-    context->glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    context->glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    context->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    context->glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    context->glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), static_cast<void*>(nullptr));
-    context->glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), static_cast<void*>(nullptr));
+    glEnableVertexAttribArray(0);
     
-    context->glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
-    context->glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
     
-    context->glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), reinterpret_cast<void*>(6 * sizeof(float)));
-    context->glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), reinterpret_cast<void*>(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
             
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -101,7 +101,7 @@ Graphics::Graphics(OpenGL* ctx, HWND parent) :
             if (data)
             {
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, data);
-                context->glGenerateMipmap(GL_TEXTURE_2D);
+                glGenerateMipmap(GL_TEXTURE_2D);
             }
 
             GlobalUnlock(data);
@@ -109,11 +109,20 @@ Graphics::Graphics(OpenGL* ctx, HWND parent) :
     }
    
    GlobalFree(dib);
+
+   IMGUI_CHECKVERSION();
+   ImGui::CreateContext();
+   ImGui::StyleColorsDark();
+   ImGui_ImplOpenGL3_Init("#version 400");
+   ImGui_ImplWin32_Init(hWnd);
 }
 
 Graphics::~Graphics()
 {
     delete program;
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyContext();
 }
 
 bool Graphics::render() const
@@ -121,14 +130,27 @@ bool Graphics::render() const
     program->useProgram();
 
     context->beginScene(0.3f, 0.3f, 0.3f, 1.0f);
-
+        
     glBindTexture(GL_TEXTURE_2D, texture);
     
-    context->glBindVertexArray(vao);
+    glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
- 
-    context->endScene();
 
+    ImGuiIO& io = ImGui::GetIO();
+    io.DisplaySize = ImVec2(static_cast<float>(width), static_cast<float>(height));
+    io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+    
+    ImGui::Begin("Test Window");
+    ImGui::Text("Open GL");
+    ImGui::End();
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    context->endScene();
     return true;
 }
 

@@ -1,5 +1,7 @@
 #include "Shader.h"
 
+#include <GL/glcorearb.h>
+
 Shader::Shader(OpenGL* ctx, HWND hWnd, int vertexShader, int fragmentShader) :
     vertShader(0),
     fragShader(0),
@@ -41,16 +43,16 @@ Shader::Shader(OpenGL* ctx, HWND hWnd, int vertexShader, int fragmentShader) :
 
 Shader::~Shader()
 {
-    context->glDetachShader(program, vertShader);
-    context->glDetachShader(program, fragShader);
-    context->glDeleteShader(vertShader);
-    context->glDeleteShader(fragShader);
-    context->glDeleteProgram(program);
+    glDetachShader(program, vertShader);
+    glDetachShader(program, fragShader);
+    glDeleteShader(vertShader);
+    glDeleteShader(fragShader);
+    glDeleteProgram(program);
 }
 
 void Shader::useProgram() const
 {
-    context->glUseProgram(program);
+    glUseProgram(program);
 }
 
 bool Shader::initializeShader(HWND hWnd, const char* vertexShaderBuffer, const char* fragmentShaderBuffer)
@@ -58,10 +60,10 @@ bool Shader::initializeShader(HWND hWnd, const char* vertexShaderBuffer, const c
     int status;
 
     // Vertex shader
-    vertShader = context->glCreateShader(GL_VERTEX_SHADER);
-    context->glShaderSource(vertShader, 1, &vertexShaderBuffer, nullptr);    
-    context->glCompileShader(vertShader);    
-    context->glGetShaderiv(vertShader, GL_COMPILE_STATUS, &status);
+    vertShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertShader, 1, &vertexShaderBuffer, nullptr);    
+    glCompileShader(vertShader);    
+    glGetShaderiv(vertShader, GL_COMPILE_STATUS, &status);
     if (status != 1)
     {
         outputShaderError(hWnd, vertShader);
@@ -69,10 +71,10 @@ bool Shader::initializeShader(HWND hWnd, const char* vertexShaderBuffer, const c
     }
 
     // Fragment shader
-    fragShader = context->glCreateShader(GL_FRAGMENT_SHADER);
-    context->glShaderSource(fragShader, 1, &fragmentShaderBuffer, nullptr);
-    context->glCompileShader(fragShader);
-    context->glGetShaderiv(fragShader, GL_COMPILE_STATUS, &status);
+    fragShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragShader, 1, &fragmentShaderBuffer, nullptr);
+    glCompileShader(fragShader);
+    glGetShaderiv(fragShader, GL_COMPILE_STATUS, &status);
     if (status != 1)
     {
         outputShaderError(hWnd, fragShader);
@@ -80,13 +82,13 @@ bool Shader::initializeShader(HWND hWnd, const char* vertexShaderBuffer, const c
     }
 
     // Program
-    program = context->glCreateProgram();
-    context->glAttachShader(program, vertShader);
-    context->glAttachShader(program, fragShader);
-    context->glBindAttribLocation(program, 0, "vertex");
-    context->glBindAttribLocation(program, 1, "normal");
-    context->glLinkProgram(program);
-    context->glGetProgramiv(program, GL_LINK_STATUS, &status);
+    program = glCreateProgram();
+    glAttachShader(program, vertShader);
+    glAttachShader(program, fragShader);
+    glBindAttribLocation(program, 0, "vertex");
+    glBindAttribLocation(program, 1, "normal");
+    glLinkProgram(program);
+    glGetProgramiv(program, GL_LINK_STATUS, &status);
     if (status != 1)
     {
         outputLinkerError(hWnd, program);
@@ -96,25 +98,25 @@ bool Shader::initializeShader(HWND hWnd, const char* vertexShaderBuffer, const c
     return true;
 }
 
-void Shader::outputShaderError(HWND hWnd, unsigned shaderId) const
+void Shader::outputShaderError(HWND hWnd, unsigned shaderId)
 {
     int logSize;
-    context->glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &logSize);
+    glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &logSize);
     
     std::string log;
     log.resize(logSize);
-    context->glGetShaderInfoLog(shaderId, logSize, nullptr, &log[0]);
+    glGetShaderInfoLog(shaderId, logSize, nullptr, &log[0]);
     showMessage(hWnd, log);
 }
 
-void Shader::outputLinkerError(HWND hWnd, unsigned programId) const
+void Shader::outputLinkerError(HWND hWnd, unsigned programId)
 {
     int logSize;
-    context->glGetProgramiv(programId, GL_INFO_LOG_LENGTH, &logSize);
+    glGetProgramiv(programId, GL_INFO_LOG_LENGTH, &logSize);
 
     std::string log;
     log.resize(logSize);
-    context->glGetProgramInfoLog(programId, logSize, nullptr, &log[0]);
+    glGetProgramInfoLog(programId, logSize, nullptr, &log[0]);
     showMessage(hWnd, log);
 }
 

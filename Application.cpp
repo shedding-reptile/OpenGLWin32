@@ -2,6 +2,7 @@
 #include "resource.h"
 
 static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 Application::Application() :
     hInstance(nullptr),
@@ -76,7 +77,7 @@ bool Application::initWindow()
     if (!hWnd)
     {
         return false;
-    }  
+    }
 
     if (!context->init(hWnd))
     {
@@ -102,7 +103,7 @@ void Application::closeWindow()
     applicationHandle = nullptr;
 }
 
-void Application::run()
+void Application::run() const
 {
     MSG msg = {};
 
@@ -113,11 +114,6 @@ void Application::run()
         {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
-        }
-
-        if (msg.message == WM_KEYDOWN || msg.message == WM_SYSKEYDOWN)
-        {
-            handleKey(msg);
         }
 
         if (msg.message == WM_QUIT)
@@ -142,28 +138,6 @@ bool Application::frame() const
     }
 
     return false;
-}
-
-void Application::handleKey(MSG& msg)
-{
-    if (msg.message == WM_KEYDOWN)
-    {
-        switch (msg.wParam)
-        {
-        case VK_LEFT:
-            break;
-        case VK_RIGHT:
-            break;
-        case VK_UP:
-            break;
-        case VK_DOWN:
-            break;
-        case VK_SPACE:
-            break;
-        default:
-            break;
-        }
-    }
 }
 
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -202,7 +176,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 }
 
-LRESULT CALLBACK Application::wndMsgHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK Application::wndMsgHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) const
 {
     switch (message)
     {
@@ -210,7 +184,8 @@ LRESULT CALLBACK Application::wndMsgHandler(HWND hWnd, UINT message, WPARAM wPar
         resizeViewport();
 
     default:
-        break;
+        if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
+            return true;
     }
 
     return DefWindowProc(hWnd, message, wParam, lParam);
@@ -224,25 +199,4 @@ void Application::resizeViewport() const
         GetClientRect(hWnd, &rcClient);
         graph->resize(rcClient.right, rcClient.bottom);
     }
-}
-
-INT_PTR CALLBACK DlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    return applicationHandle->dlgMsgHandler(hDlg, message, wParam, lParam);
-}
-
-INT_PTR CALLBACK Application::dlgMsgHandler(HWND hDlgWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    switch (message)
-    {
-    case WM_INITDIALOG:
-    {
-    }
-    break;
-
-    default:
-        break;
-    }
-
-    return FALSE;
 }
