@@ -10,13 +10,12 @@ private:
 
 public:
 	Camera();
-	Camera(const Camera&);
 	~Camera();
 
 	void setPosition(float, float, float);
 	void setRotation(float, float, float);
 	void render();
-	void getViewMatrix(float*);
+	void getViewMatrix(float*) const;
 
 private:
 	static void matrixRotationYawPitchRoll(float*, float, float, float);

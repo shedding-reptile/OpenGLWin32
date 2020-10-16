@@ -7,8 +7,7 @@ OpenGL::OpenGL(HWND parent) :
 	wglCreateContextAttribsARB(nullptr),
 	wglSwapIntervalEXT(nullptr),
 	modelMatrix{},
-	projectionMatrix{},
-	videoCardDescription{}
+	projectionMatrix{}
 {
 	deviceContext = nullptr;
 	renderingContext = nullptr;
@@ -45,8 +44,7 @@ bool OpenGL::initializeExtensions(HWND hwnd)
 	}
 
 	// Set a temporary default pixel format.
-	int error = SetPixelFormat(deviceContext, 1, &pixelFormat);
-	if (error != 1)
+	if (SetPixelFormat(deviceContext, 1, &pixelFormat) != 1)
 	{
 		return false;
 	}
@@ -59,15 +57,13 @@ bool OpenGL::initializeExtensions(HWND hwnd)
 	}
 
 	// Set the temporary rendering context as the current rendering context for this window.
-	error = wglMakeCurrent(deviceContext, renderContext);
-	if (error != 1)
+	if (wglMakeCurrent(deviceContext, renderContext) != 1)
 	{
 		return false;
 	}
 
 	// Initialize the OpenGL extensions needed for this application.  Note that a temporary rendering context was needed to do so.
-	bool result = loadExtensionList();
-	if (!result)
+	if (!loadExtensionList())
 	{
 		return false;
 	}
@@ -201,11 +197,11 @@ bool OpenGL::initializeOpenGl(HWND hwnd, int screenWidth, int screenHeight, floa
 	buildPerspectiveFovLhMatrix(projectionMatrix, fieldOfView, screenAspect, screenNear, screenDepth);
 
 	// Get the name of the video card.
-	char* vendorString = (char*)glGetString(GL_VENDOR);
-	char* rendererString = (char*)glGetString(GL_RENDERER);
+	const char* vendorString = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
+	const char* rendererString = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
 
 	// Store the video card name in a class member variable so it can be retrieved later.
-	videoCardDescription = std::string(vendorString) + " - " + std::string("rendererString");
+	videoCardDescription = std::string(vendorString) + " - " + std::string(rendererString);
 
 	// Turn on or off the vertical sync depending on the input bool value.
 	if (vsync)
@@ -246,19 +242,19 @@ void OpenGL::endScene() const
 bool OpenGL::loadExtensionList()
 {
 	// Load the OpenGL extensions that this application will be using.
-	wglChoosePixelFormatARB = (PFNWGLCHOOSEPIXELFORMATARBPROC)wglGetProcAddress("wglChoosePixelFormatARB");
+	wglChoosePixelFormatARB = reinterpret_cast<PFNWGLCHOOSEPIXELFORMATARBPROC>(wglGetProcAddress("wglChoosePixelFormatARB"));
 	if (!wglChoosePixelFormatARB)
 	{
 		return false;
 	}
 
-	wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
+	wglCreateContextAttribsARB = reinterpret_cast<PFNWGLCREATECONTEXTATTRIBSARBPROC>(wglGetProcAddress("wglCreateContextAttribsARB"));
 	if (!wglCreateContextAttribsARB)
 	{
 		return false;
 	}
 
-	wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
+	wglSwapIntervalEXT = reinterpret_cast<PFNWGLSWAPINTERVALEXTPROC>(wglGetProcAddress("wglSwapIntervalEXT"));
 	if (!wglSwapIntervalEXT)
 	{
 		return false;
@@ -313,7 +309,7 @@ void OpenGL::getProjectionMatrix(float* matrix)
 	matrix[15] = projectionMatrix[15];
 }
 
-std::string OpenGL::getVideoCardInfo()
+std::string OpenGL::getVideoCardInfo() const
 {
 	return videoCardDescription;
 }

@@ -61,7 +61,7 @@ bool Application::init()
 	}
 	catch (const std::exception& e)
 	{
-		std::wstring error = strToWstr(e.what());
+        const std::wstring error = strToWstr(e.what());
 		MessageBox(wnd, error.c_str(), L"Error", MB_OK);
 	}
 	
@@ -143,7 +143,7 @@ bool Application::frame() const
 	}
 
 	// Do the frame processing for the graphics object.
-	bool result = graphics->render();
+    const bool result = graphics->render();
 	if (!result)
 	{
 		return false;
@@ -158,7 +158,7 @@ LRESULT CALLBACK Application::messageHandler(HWND hwnd, UINT message, WPARAM wPa
 	{
 	case WM_COMMAND:
 	{
-		int wmId = LOWORD(wParam);
+        const int wmId = LOWORD(wParam);
 		// Parse the menu selections:
 		switch (wmId)
 		{
@@ -176,13 +176,13 @@ LRESULT CALLBACK Application::messageHandler(HWND hwnd, UINT message, WPARAM wPa
 	// Check if a key has been pressed on the keyboard.
 	case WM_KEYDOWN:
 		// If a key is pressed send it to the input object so it can record that state.
-		input->keyDown((unsigned int)wParam);
+		input->keyDown(static_cast<unsigned>(wParam));
 		return 0;
 
 		// Check if a key has been released on the keyboard.
 	case WM_KEYUP:
 		// If a key is released then send it to the input object so it can unset the state for that key.
-		input->keyUp((unsigned int)wParam);
+		input->keyUp(static_cast<unsigned>(wParam));
 		return 0;
 	default:
 		;
@@ -213,7 +213,7 @@ bool Application::initWindow(OpenGL* OpenGL, int& screenWidth, int& screenHeight
 	wcex.hIcon = LoadIcon(instance, MAKEINTRESOURCE(IDI_OPENGLWIN32));
 	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
-	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wcex.hbrBackground = reinterpret_cast<HBRUSH>((COLOR_WINDOW + 1));
 	wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_OPENGLWIN32);
 	wcex.lpszClassName = windowClass;
 	wcex.cbSize = sizeof(WNDCLASSEX);
@@ -318,26 +318,26 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
 	case WM_INITDIALOG:
-		return (INT_PTR)TRUE;
+		return static_cast<INT_PTR>(TRUE);
 
 	case WM_COMMAND:
 		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
 		{
 			EndDialog(hDlg, LOWORD(wParam));
-			return (INT_PTR)TRUE;
+			return static_cast<INT_PTR>(TRUE);
 		}
 		break;
 	default: 
 		;
 	}
-	return (INT_PTR)FALSE;
+	return static_cast<INT_PTR>(FALSE);
 }
 
 std::wstring Application::strToWstr(const std::string str)
 {
 	const char* mbstr = str.c_str();
 	std::mbstate_t state = std::mbstate_t();
-	std::size_t len = 1 + std::mbsrtowcs(NULL, &mbstr, 0, &state);
+    const std::size_t len = 1 + std::mbsrtowcs(nullptr, &mbstr, 0, &state);
 	std::vector<wchar_t> wstr(len);
 	std::mbsrtowcs(&wstr[0], &mbstr, wstr.size(), &state);
 	return std::wstring(&wstr[0]);

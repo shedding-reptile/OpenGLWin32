@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Texture.h"
+#include "glad/glad.h"
 
 class Model
 {
@@ -19,7 +20,7 @@ class Model
 	};
 
 public:
-	Model(char* modelFilename, char* textureFilename, unsigned int textureUnit, bool wrap);
+	Model(const char* modelFilename, const char* textureFilename, unsigned int textureUnit, bool wrap);
 	~Model();
 	void render() const;
 
@@ -27,9 +28,9 @@ private:
 	bool initializeBuffers();
 	void shutdownBuffers() const;
 	void renderBuffers() const;
-	bool loadTexture(char*, unsigned int, bool);
+	bool loadTexture(const char*, unsigned int, bool);
 	void releaseTexture();
-	bool loadModel(char*);
+	bool loadModel(const char*);
 	void releaseModel();
 
 	unsigned vertexCount;

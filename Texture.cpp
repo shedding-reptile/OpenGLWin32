@@ -1,11 +1,12 @@
 #include "Texture.h"
 #include <cstdio>
+#include <exception>
+#include "glad/glad.h"
 
-Texture::Texture(char* filename, unsigned int textureUnit, bool wrap): loaded(false), textureID(0)
+Texture::Texture(const char* filename, unsigned int textureUnit, bool wrap): loaded(false), textureID(0)
 {
 	// Load the targa file.
-	const bool result = loadTarga(filename, textureUnit, wrap);
-	if (!result)
+	if (!loadTarga(filename, textureUnit, wrap))
 	{
 		throw std::exception("Cannot initialize texture!");
 	}
@@ -21,7 +22,7 @@ Texture::~Texture()
 	}
 }
 
-bool Texture::loadTarga(char* filename, unsigned int textureUnit, bool wrap)
+bool Texture::loadTarga(const char* filename, unsigned int textureUnit, bool wrap)
 {
 	FILE* filePtr;
 	TargaHeader targaFileHeader;
@@ -42,9 +43,9 @@ bool Texture::loadTarga(char* filename, unsigned int textureUnit, bool wrap)
 	}
 
 	// Get the important information from the header.
-	int width = (int)targaFileHeader.width;
-	int height = (int)targaFileHeader.height;
-	int bpp = (int)targaFileHeader.bpp;
+    const int width = static_cast<int>(targaFileHeader.width);
+    const int height = static_cast<int>(targaFileHeader.height);
+    const int bpp = static_cast<int>(targaFileHeader.bpp);
 
 	// Check that it is 32 bit and not 24 bit.
 	if(bpp != 32)

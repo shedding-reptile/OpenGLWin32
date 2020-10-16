@@ -1,7 +1,5 @@
 #pragma once
 
-#include "OpenGL.h"
-
 class Texture
 {
 	struct TargaHeader
@@ -14,11 +12,11 @@ class Texture
 	};
 
 public:
-	Texture(char* filename, unsigned int textureUnit, bool wrap);
+	Texture(const char* filename, unsigned int textureUnit, bool wrap);
 	~Texture();
 
 private:
-	bool loadTarga(char*, unsigned int, bool);
+	bool loadTarga(const char*, unsigned int, bool);
 
 	bool loaded;
 	unsigned int textureID;

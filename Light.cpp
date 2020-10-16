@@ -3,10 +3,6 @@
 Light::Light()
 = default;
 
-Light::Light(const Light& other): diffuseColor{}, direction{}, ambientLight{}
-{
-}
-
 Light::~Light()
 = default;
 
@@ -41,11 +37,11 @@ void Light::getDiffuseColor(float* color)
 	color[3] = diffuseColor[3];
 }
 
-void Light::getDirection(float* direction)
+void Light::getDirection(float* dir)
 {
-	direction[0] = direction[0];
-	direction[1] = direction[1];
-	direction[2] = direction[2];
+	dir[0] = direction[0];
+	dir[1] = direction[1];
+	dir[2] = direction[2];
 }
 
 void Light::getAmbientLight(float* ambient)

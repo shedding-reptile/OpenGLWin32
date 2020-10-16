@@ -1,7 +1,5 @@
 #pragma once
 
-#include "OpenGL.h"
-
 class Shader
 {
 public:

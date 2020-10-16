@@ -19,7 +19,7 @@ private:
 	bool frame() const;
 	bool initWindow(OpenGL*, int&, int&);
 	void closeWindow();
-	std::wstring strToWstr(const std::string str);
+    static std::wstring strToWstr(std::string str);
 
 	HINSTANCE instance;
 	HWND wnd;

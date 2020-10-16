@@ -16,7 +16,7 @@ public:
 	void endScene() const;
 	void getWorldMatrix(float*);
 	void getProjectionMatrix(float*);
-	std::string getVideoCardInfo();
+	std::string getVideoCardInfo() const;
 	static void buildIdentityMatrix(float*);
 	void buildPerspectiveFovLhMatrix(float*, float, float, float, float) const;
 	static void matrixRotationY(float*, float);

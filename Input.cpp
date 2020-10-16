@@ -1,8 +1,7 @@
 #include "Input.h"
-#include <cstring>
 
 Input::Input():
-	keys{ 0 }
+	keys{ false }
 {
 }
 

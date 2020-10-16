@@ -1,6 +1,6 @@
 #include "Shader.h"
 #include "resource.h"
-
+#include "OpenGL.h"
 #include <fstream>
 
 Shader::Shader(): vertexShader(0), fragmentShader(0), shaderProgram(0)

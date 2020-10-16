@@ -63,11 +63,11 @@ bool Graphics::initialize()
 	// Create the model object.
 	try
 	{
-		model = new Model((char*)"cube.txt", (char*)"opengl.tga", 0, true);
+		model = new Model("cube.txt", "opengl.tga", 0, true);
 	}
-	catch (const std::exception& e)
+	catch (const std::exception&)
 	{
-		throw e;
+		throw;
 	}
 	
 	// Create the light shader object.
@@ -75,9 +75,9 @@ bool Graphics::initialize()
 	{
 		shader = new Shader;
 	}
-	catch (const std::exception& e)
+	catch (const std::exception&)
 	{
-		throw e;
+		throw;
 	}
 	
 	// Create the light object.

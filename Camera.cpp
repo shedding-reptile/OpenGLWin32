@@ -13,16 +13,8 @@ Camera::Camera(): viewMatrix{}
 	rotZ = 0.0f;
 }
 
-Camera::Camera(const Camera& other): posX(0), posY(0), posZ(0), rotX(0),
-                                                    rotY(0),
-                                                    rotZ(0),
-                                                    viewMatrix{}
-{
-}
-
 Camera::~Camera()
-{
-}
+= default;
 
 void Camera::setPosition(float x, float y, float z)
 {
@@ -59,9 +51,9 @@ void Camera::render()
 	lookAt.z = 1.0f;
 
 	// Set the yaw (Y axis), pitch (X axis), and roll (Z axis) rotations in radians.
-	float pitch = rotX * 0.0174532925f;
-	float yaw = rotY * 0.0174532925f;
-	float roll = rotZ * 0.0174532925f;
+    const float pitch = rotX * 0.0174532925f;
+    const float yaw = rotY * 0.0174532925f;
+    const float roll = rotZ * 0.0174532925f;
 
 	// Create the rotation matrix from the yaw, pitch, and roll values.
 	matrixRotationYawPitchRoll(rotationMatrix, yaw, pitch, roll);
@@ -83,13 +75,13 @@ void Camera::render()
 void Camera::matrixRotationYawPitchRoll(float* matrix, float yaw, float pitch, float roll)
 {
 	// Get the cosine and sin of the yaw, pitch, and roll.
-	float cYaw = cosf(yaw);
-	float cPitch = cosf(pitch);
-	float cRoll = cosf(roll);
+    const float cYaw = cosf(yaw);
+    const float cPitch = cosf(pitch);
+    const float cRoll = cosf(roll);
 
-	float sYaw = sinf(yaw);
-	float sPitch = sinf(pitch);
-	float sRoll = sinf(roll);
+    const float sYaw = sinf(yaw);
+    const float sPitch = sinf(pitch);
+    const float sRoll = sinf(roll);
 
 	// Calculate the yaw, pitch, roll rotation matrix.
 	matrix[0] = (cRoll * cYaw) + (sRoll * sPitch * sYaw);
@@ -109,9 +101,9 @@ void Camera::matrixRotationYawPitchRoll(float* matrix, float yaw, float pitch, f
 void Camera::transformCoord(VectorType& vector, float* matrix)
 {
 	// Transform the vector by the 3x3 matrix.
-	float x = (vector.x * matrix[0]) + (vector.y * matrix[3]) + (vector.z * matrix[6]);
-	float y = (vector.x * matrix[1]) + (vector.y * matrix[4]) + (vector.z * matrix[7]);
-	float z = (vector.x * matrix[2]) + (vector.y * matrix[5]) + (vector.z * matrix[8]);
+    const float x = (vector.x * matrix[0]) + (vector.y * matrix[3]) + (vector.z * matrix[6]);
+    const float y = (vector.x * matrix[1]) + (vector.y * matrix[4]) + (vector.z * matrix[7]);
+    const float z = (vector.x * matrix[2]) + (vector.y * matrix[5]) + (vector.z * matrix[8]);
 
 	// Store the result in the reference.
 	vector.x = x;
@@ -148,13 +140,13 @@ void Camera::buildViewMatrix(VectorType position, VectorType lookAt, VectorType 
 	yAxis.z = (zAxis.x * xAxis.y) - (zAxis.y * xAxis.x);
 
 	// -dot(xAxis, position)
-	float result1 = ((xAxis.x * position.x) + (xAxis.y * position.y) + (xAxis.z * position.z)) * -1.0f;
+    const float result1 = ((xAxis.x * position.x) + (xAxis.y * position.y) + (xAxis.z * position.z)) * -1.0f;
 
 	// -dot(yaxis, eye)
-	float result2 = ((yAxis.x * position.x) + (yAxis.y * position.y) + (yAxis.z * position.z)) * -1.0f;
+    const float result2 = ((yAxis.x * position.x) + (yAxis.y * position.y) + (yAxis.z * position.z)) * -1.0f;
 
 	// -dot(zaxis, eye)
-	float result3 = ((zAxis.x * position.x) + (zAxis.y * position.y) + (zAxis.z * position.z)) * -1.0f;
+    const float result3 = ((zAxis.x * position.x) + (zAxis.y * position.y) + (zAxis.z * position.z)) * -1.0f;
 
 	// Set the computed values in the view matrix.
 	viewMatrix[0]  = xAxis.x;
@@ -178,7 +170,7 @@ void Camera::buildViewMatrix(VectorType position, VectorType lookAt, VectorType 
 	viewMatrix[15] = 1.0f;
 }
 
-void Camera::getViewMatrix(float* matrix)
+void Camera::getViewMatrix(float* matrix) const
 {
 	std::memcpy(matrix, viewMatrix, sizeof(viewMatrix));
 }

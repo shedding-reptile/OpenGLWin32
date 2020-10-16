@@ -2,7 +2,7 @@
 #include <fstream>
 #include <exception>
 
-Model::Model(char* modelFilename, char* textureFilename, unsigned int textureUnit, bool wrap) :
+Model::Model(const char* modelFilename, const char* textureFilename, unsigned int textureUnit, bool wrap) :
 	vertexCount(0),
 	indexCount(0),
 	vertexArrayId(0),
@@ -100,11 +100,11 @@ bool Model::initializeBuffers()
 
 	// Specify the location and format of the texture coordinate portion of the vertex buffer.
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferId);
-	glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof(VertexType), (unsigned char*)nullptr + (3 * sizeof(float)));
+	glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof(VertexType), static_cast<unsigned char*>(nullptr) + (3 * sizeof(float)));
 
 	// Specify the location and format of the normal vector portion of the vertex buffer.
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferId);
-	glVertexAttribPointer(2, 3, GL_FLOAT, false, sizeof(VertexType), (unsigned char*)nullptr + (5 * sizeof(float)));
+	glVertexAttribPointer(2, 3, GL_FLOAT, false, sizeof(VertexType), static_cast<unsigned char*>(nullptr) + (5 * sizeof(float)));
 
 	// Generate an ID for the index buffer.
 	glGenBuffers(1, &indexBufferId);
@@ -151,7 +151,7 @@ void Model::renderBuffers() const
 
 }
 
-bool Model::loadTexture(char* textureFilename, unsigned int textureUnit, bool wrap)
+bool Model::loadTexture(const char* textureFilename, unsigned int textureUnit, bool wrap)
 {
 	// Create the texture object.
 	try
@@ -176,7 +176,7 @@ void Model::releaseTexture()
 	}
 }
 
-bool Model::loadModel(char* filename)
+bool Model::loadModel(const char* filename)
 {
 	std::ifstream fin;
 	char input;

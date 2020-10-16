@@ -4,7 +4,6 @@ class Light
 {
 public:
 	Light();
-	Light(const Light&);
 	~Light();
 	void setDiffuseColor(float, float, float, float);
 	void setDirection(float, float, float);
