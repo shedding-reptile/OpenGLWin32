@@ -2,93 +2,36 @@
 #include <cmath>
 #include "OpenGL.h"
 
-OpenGL::OpenGL(): glAttachShader(nullptr), glBindBuffer(nullptr),
-                            glBindVertexArray(nullptr), glBufferData(nullptr),
-                            glCompileShader(nullptr),
-                            glCreateProgram(nullptr), glCreateShader(nullptr),
-                            glDeleteBuffers(nullptr),
-                            glDeleteProgram(nullptr),
-                            glDeleteShader(nullptr),
-                            glDeleteVertexArrays(nullptr),
-                            glDetachShader(nullptr),
-                            glEnableVertexAttribArray(nullptr),
-                            glGenBuffers(nullptr),
-                            glGenVertexArrays(nullptr),
-                            glGetAttribLocation(nullptr),
-                            glGetProgramInfoLog(nullptr),
-                            glGetProgramiv(nullptr),
-                            glGetShaderInfoLog(nullptr),
-                            glGetShaderiv(nullptr),
-                            glLinkProgram(nullptr),
-                            glShaderSource(nullptr),
-                            glUseProgram(nullptr),
-                            glVertexAttribPointer(nullptr),
-                            glBindAttribLocation(nullptr),
-                            glGetUniformLocation(nullptr),
-                            glUniformMatrix4fv(nullptr),
-                            glActiveTexture(nullptr),
-                            glUniform1i(nullptr),
-                            glGenerateMipmap(nullptr),
-                            glDisableVertexAttribArray(nullptr),
-                            glUniform3fv(nullptr), glUniform4fv(nullptr),
-                            wglChoosePixelFormatARB(nullptr),
-                            wglCreateContextAttribsARB(nullptr),
-                            wglSwapIntervalEXT(nullptr),
-                            m_worldMatrix{},
-                            m_projectionMatrix{},
-                            m_videoCardDescription{}
+OpenGL::OpenGL(HWND parent) :
+	wglChoosePixelFormatARB(nullptr),
+	wglCreateContextAttribsARB(nullptr),
+	wglSwapIntervalEXT(nullptr),
+	modelMatrix{},
+	projectionMatrix{},
+	videoCardDescription{}
 {
-	m_deviceContext = nullptr;
-	m_renderingContext = nullptr;
+	deviceContext = nullptr;
+	renderingContext = nullptr;
+	hWnd = parent;
 }
-
-
-OpenGL::OpenGL(const OpenGL& other): glAttachShader(nullptr), glBindBuffer(nullptr),
-                                                    glBindVertexArray(nullptr),
-                                                    glBufferData(nullptr), glCompileShader(nullptr),
-                                                    glCreateProgram(nullptr), glCreateShader(nullptr),
-                                                    glDeleteBuffers(nullptr),
-                                                    glDeleteProgram(nullptr),
-                                                    glDeleteShader(nullptr),
-                                                    glDeleteVertexArrays(nullptr),
-                                                    glDetachShader(nullptr),
-                                                    glEnableVertexAttribArray(nullptr),
-                                                    glGenBuffers(nullptr),
-                                                    glGenVertexArrays(nullptr),
-                                                    glGetAttribLocation(nullptr),
-                                                    glGetProgramInfoLog(nullptr),
-                                                    glGetProgramiv(nullptr),
-                                                    glGetShaderInfoLog(nullptr),
-                                                    glGetShaderiv(nullptr),
-                                                    glLinkProgram(nullptr),
-                                                    glShaderSource(nullptr),
-                                                    glUseProgram(nullptr),
-                                                    glVertexAttribPointer(nullptr),
-                                                    glBindAttribLocation(nullptr),
-                                                    glGetUniformLocation(nullptr),
-                                                    glUniformMatrix4fv(nullptr),
-                                                    glActiveTexture(nullptr),
-                                                    glUniform1i(nullptr),
-                                                    glGenerateMipmap(nullptr),
-                                                    glDisableVertexAttribArray(nullptr),
-                                                    glUniform3fv(nullptr),
-                                                    glUniform4fv(nullptr),
-                                                    m_deviceContext(nullptr),
-                                                    m_renderingContext(nullptr),
-                                                    wglChoosePixelFormatARB(nullptr),
-                                                    wglCreateContextAttribsARB(nullptr),
-                                                    wglSwapIntervalEXT(nullptr),
-                                                    m_worldMatrix{},
-                                                    m_projectionMatrix{},
-                                                    m_videoCardDescription{}
-{
-}
-
 
 OpenGL::~OpenGL()
 {
-}
+	// Release the rendering context.
+	if (renderingContext)
+	{
+		wglMakeCurrent(nullptr, nullptr);
+		wglDeleteContext(renderingContext);
+		renderingContext = nullptr;
+	}
 
+	// Release the device context.
+	if (deviceContext)
+	{
+		ReleaseDC(hWnd, deviceContext);
+		deviceContext = nullptr;
+	}
+}
 
 bool OpenGL::initializeExtensions(HWND hwnd)
 {
@@ -96,35 +39,35 @@ bool OpenGL::initializeExtensions(HWND hwnd)
 
 	// Get the device context for this window.
 	HDC deviceContext = GetDC(hwnd);
-	if(!deviceContext)
+	if (!deviceContext)
 	{
 		return false;
 	}
 
-    // Set a temporary default pixel format.
-    int error = SetPixelFormat(deviceContext, 1, &pixelFormat);
-	if(error != 1)
+	// Set a temporary default pixel format.
+	int error = SetPixelFormat(deviceContext, 1, &pixelFormat);
+	if (error != 1)
 	{
 		return false;
 	}
 
 	// Create a temporary rendering context.
 	HGLRC renderContext = wglCreateContext(deviceContext);
-	if(!renderContext)
+	if (!renderContext)
 	{
 		return false;
 	}
 
 	// Set the temporary rendering context as the current rendering context for this window.
 	error = wglMakeCurrent(deviceContext, renderContext);
-	if(error != 1)
+	if (error != 1)
 	{
 		return false;
 	}
 
 	// Initialize the OpenGL extensions needed for this application.  Note that a temporary rendering context was needed to do so.
 	bool result = loadExtensionList();
-	if(!result)
+	if (!result)
 	{
 		return false;
 	}
@@ -150,12 +93,12 @@ bool OpenGL::initializeOpenGl(HWND hwnd, int screenWidth, int screenHeight, floa
 	int attributeList[5];
 
 	// Get the device context for this window.
-	m_deviceContext = GetDC(hwnd);
-	if(!m_deviceContext)
+	deviceContext = GetDC(hwnd);
+	if (!deviceContext)
 	{
 		return false;
 	}
-	
+
 	// Support for OpenGL rendering.
 	attributeListInt[0] = WGL_SUPPORT_OPENGL_ARB;
 	attributeListInt[1] = TRUE;
@@ -194,17 +137,15 @@ bool OpenGL::initializeOpenGl(HWND hwnd, int screenWidth, int screenHeight, floa
 
 	// Null terminate the attribute list.
 	attributeListInt[18] = 0;
-	
+
 	// Query for a pixel format that fits the attributes we want.
-	int result = wglChoosePixelFormatARB(m_deviceContext, attributeListInt, nullptr, 1, pixelFormat, &formatCount);
-	if(result != 1)
+	if (wglChoosePixelFormatARB(deviceContext, attributeListInt, nullptr, 1, pixelFormat, &formatCount) != 1)
 	{
 		return false;
 	}
 
 	// If the video card/display can handle our desired pixel format then we set it as the current one.
-	result = SetPixelFormat(m_deviceContext, pixelFormat[0], &pixelFormatDescriptor);
-	if(result != 1)
+	if (SetPixelFormat(deviceContext, pixelFormat[0], &pixelFormatDescriptor) != 1)
 	{
 		return false;
 	}
@@ -219,25 +160,29 @@ bool OpenGL::initializeOpenGl(HWND hwnd, int screenWidth, int screenHeight, floa
 	attributeList[4] = 0;
 
 	// Create a OpenGL 4.0 rendering context.
-	m_renderingContext = wglCreateContextAttribsARB(m_deviceContext, nullptr, attributeList);
-	if(m_renderingContext == nullptr)
+	renderingContext = wglCreateContextAttribsARB(deviceContext, nullptr, attributeList);
+	if (renderingContext == nullptr)
 	{
 		return false;
 	}
 
 	// Set the rendering context to active.
-	result = wglMakeCurrent(m_deviceContext, m_renderingContext);
-	if(result != 1)
+	if (wglMakeCurrent(deviceContext, renderingContext) != 1)
 	{
 		return false;
 	}
-	
+
+	if (!gladLoadGL())
+	{
+		return false;
+	}
+
 	// Set the depth buffer to be entirely cleared to 1.0 values.
 	glClearDepth(1.0f);
 
 	// Enable depth testing.
 	glEnable(GL_DEPTH_TEST);
-	
+
 	// Set the polygon winding to front facing for the left handed system.
 	glFrontFace(GL_CW);
 
@@ -246,76 +191,55 @@ bool OpenGL::initializeOpenGl(HWND hwnd, int screenWidth, int screenHeight, floa
 	glCullFace(GL_BACK);
 
 	// Initialize the world/model matrix to the identity matrix.
-	buildIdentityMatrix(m_worldMatrix);
+	buildIdentityMatrix(modelMatrix);
 
 	// Set the field of view and screen aspect ratio.
 	const float fieldOfView = static_cast<float>(M_PI) / 4.0f;
 	const float screenAspect = static_cast<float>(screenWidth) / static_cast<float>(screenHeight);
 
 	// Build the perspective projection matrix.
-	buildPerspectiveFovLhMatrix(m_projectionMatrix, fieldOfView, screenAspect, screenNear, screenDepth);
+	buildPerspectiveFovLhMatrix(projectionMatrix, fieldOfView, screenAspect, screenNear, screenDepth);
 
 	// Get the name of the video card.
 	char* vendorString = (char*)glGetString(GL_VENDOR);
 	char* rendererString = (char*)glGetString(GL_RENDERER);
 
 	// Store the video card name in a class member variable so it can be retrieved later.
-	strcpy_s(m_videoCardDescription, vendorString);
-	strcat_s(m_videoCardDescription, " - ");
-	strcat_s(m_videoCardDescription, rendererString);
+	videoCardDescription = std::string(vendorString) + " - " + std::string("rendererString");
 
 	// Turn on or off the vertical sync depending on the input bool value.
-	if(vsync)
+	if (vsync)
 	{
-		result = wglSwapIntervalEXT(1);
+		if (wglSwapIntervalEXT(1) != 1)
+		{
+			return false;
+		}
 	}
 	else
 	{
-		result = wglSwapIntervalEXT(0);
-	}
-
-	// Check if vsync was set correctly.
-	if(result != 1)
-	{
-		return false;
+		if (wglSwapIntervalEXT(0) != 1)
+		{
+			return false;
+		}
 	}
 
 	return true;
 }
 
-void OpenGL::shutdown(HWND hwnd)
-{
-	// Release the rendering context.
-	if(m_renderingContext)
-	{
-		wglMakeCurrent(nullptr, nullptr);
-		wglDeleteContext(m_renderingContext);
-		m_renderingContext = nullptr;
-	}
-
-	// Release the device context.
-	if(m_deviceContext)
-	{
-		ReleaseDC(hwnd, m_deviceContext);
-		m_deviceContext = nullptr;
-	}
-
-}
-
-void OpenGL::beginScene(float red, float green, float blue, float alpha)
+void OpenGL::beginScene()
 {
 	// Set the color to clear the screen to.
-	glClearColor(red, green, blue, alpha); 
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 	// Clear the screen and depth buffer.
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
+
 }
 
 void OpenGL::endScene() const
 {
 	// Present the back buffer to the screen since rendering is complete.
-	SwapBuffers(m_deviceContext);
+	SwapBuffers(deviceContext);
 
 }
 
@@ -323,217 +247,19 @@ bool OpenGL::loadExtensionList()
 {
 	// Load the OpenGL extensions that this application will be using.
 	wglChoosePixelFormatARB = (PFNWGLCHOOSEPIXELFORMATARBPROC)wglGetProcAddress("wglChoosePixelFormatARB");
-	if(!wglChoosePixelFormatARB)
+	if (!wglChoosePixelFormatARB)
 	{
 		return false;
 	}
 
 	wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
-	if(!wglCreateContextAttribsARB)
+	if (!wglCreateContextAttribsARB)
 	{
 		return false;
 	}
 
 	wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
-	if(!wglSwapIntervalEXT)
-	{
-		return false;
-	}
-
-	glAttachShader = (PFNGLATTACHSHADERPROC)wglGetProcAddress("glAttachShader");
-	if(!glAttachShader)
-	{
-		return false;
-	}
-
-	glBindBuffer = (PFNGLBINDBUFFERPROC)wglGetProcAddress("glBindBuffer");
-	if(!glBindBuffer)
-	{
-		return false;
-	}
-
-	glBindVertexArray = (PFNGLBINDVERTEXARRAYPROC)wglGetProcAddress("glBindVertexArray");
-	if(!glBindVertexArray)
-	{
-		return false;
-	}
-
-	glBufferData = (PFNGLBUFFERDATAPROC)wglGetProcAddress("glBufferData");
-	if(!glBufferData)
-	{
-		return false;
-	}
-
-	glCompileShader = (PFNGLCOMPILESHADERPROC)wglGetProcAddress("glCompileShader");
-	if(!glCompileShader)
-	{
-		return false;
-	}
-
-	glCreateProgram = (PFNGLCREATEPROGRAMPROC)wglGetProcAddress("glCreateProgram");
-	if(!glCreateProgram)
-	{
-		return false;
-	}
-
-	glCreateShader = (PFNGLCREATESHADERPROC)wglGetProcAddress("glCreateShader");
-	if(!glCreateShader)
-	{
-		return false;
-	}
-
-	glDeleteBuffers = (PFNGLDELETEBUFFERSPROC)wglGetProcAddress("glDeleteBuffers");
-	if(!glDeleteBuffers)
-	{
-		return false;
-	}
-
-	glDeleteProgram = (PFNGLDELETEPROGRAMPROC)wglGetProcAddress("glDeleteProgram");
-	if(!glDeleteProgram)
-	{
-		return false;
-	}
-
-	glDeleteShader = (PFNGLDELETESHADERPROC)wglGetProcAddress("glDeleteShader");
-	if(!glDeleteShader)
-	{
-		return false;
-	}
-
-	glDeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC)wglGetProcAddress("glDeleteVertexArrays");
-	if(!glDeleteVertexArrays)
-	{
-		return false;
-	}
-
-	glDetachShader = (PFNGLDETACHSHADERPROC)wglGetProcAddress("glDetachShader");
-	if(!glDetachShader)
-	{
-		return false;
-	}
-
-	glEnableVertexAttribArray = (PFNGLENABLEVERTEXATTRIBARRAYPROC)wglGetProcAddress("glEnableVertexAttribArray");
-	if(!glEnableVertexAttribArray)
-	{
-		return false;
-	}
-
-	glGenBuffers = (PFNGLGENBUFFERSPROC)wglGetProcAddress("glGenBuffers");
-	if(!glGenBuffers)
-	{
-		return false;
-	}
-
-	glGenVertexArrays = (PFNGLGENVERTEXARRAYSPROC)wglGetProcAddress("glGenVertexArrays");
-	if(!glGenVertexArrays)
-	{
-		return false;
-	}
-
-	glGetAttribLocation = (PFNGLGETATTRIBLOCATIONPROC)wglGetProcAddress("glGetAttribLocation");
-	if(!glGetAttribLocation)
-	{
-		return false;
-	}
-
-	glGetProgramInfoLog = (PFNGLGETPROGRAMINFOLOGPROC)wglGetProcAddress("glGetProgramInfoLog");
-	if(!glGetProgramInfoLog)
-	{
-		return false;
-	}
-
-	glGetProgramiv = (PFNGLGETPROGRAMIVPROC)wglGetProcAddress("glGetProgramiv");
-	if(!glGetProgramiv)
-	{
-		return false;
-	}
-
-	glGetShaderInfoLog = (PFNGLGETSHADERINFOLOGPROC)wglGetProcAddress("glGetShaderInfoLog");
-	if(!glGetShaderInfoLog)
-	{
-		return false;
-	}
-
-	glGetShaderiv = (PFNGLGETSHADERIVPROC)wglGetProcAddress("glGetShaderiv");
-	if(!glGetShaderiv)
-	{
-		return false;
-	}
-
-	glLinkProgram = (PFNGLLINKPROGRAMPROC)wglGetProcAddress("glLinkProgram");
-	if(!glLinkProgram)
-	{
-		return false;
-	}
-
-	glShaderSource = (PFNGLSHADERSOURCEPROC)wglGetProcAddress("glShaderSource");
-	if(!glShaderSource)
-	{
-		return false;
-	}
-
-	glUseProgram = (PFNGLUSEPROGRAMPROC)wglGetProcAddress("glUseProgram");
-	if(!glUseProgram)
-	{
-		return false;
-	}
-
-	glVertexAttribPointer = (PFNGLVERTEXATTRIBPOINTERPROC)wglGetProcAddress("glVertexAttribPointer");
-	if(!glVertexAttribPointer)
-	{
-		return false;
-	}
-
-	glBindAttribLocation = (PFNGLBINDATTRIBLOCATIONPROC)wglGetProcAddress("glBindAttribLocation");
-	if(!glBindAttribLocation)
-	{
-		return false;
-	}
-
-	glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC)wglGetProcAddress("glGetUniformLocation");
-	if(!glGetUniformLocation)
-	{
-		return false;
-	}
-
-	glUniformMatrix4fv = (PFNGLUNIFORMMATRIX4FVPROC)wglGetProcAddress("glUniformMatrix4fv");
-	if(!glUniformMatrix4fv)
-	{
-		return false;
-	}
-
-	glActiveTexture = (PFNGLACTIVETEXTUREPROC)wglGetProcAddress("glActiveTexture");
-	if(!glActiveTexture)
-	{
-		return false;
-	}
-
-	glUniform1i = (PFNGLUNIFORM1IPROC)wglGetProcAddress("glUniform1i");
-	if(!glUniform1i)
-	{
-		return false;
-	}
-
-	glGenerateMipmap = (PFNGLGENERATEMIPMAPPROC)wglGetProcAddress("glGenerateMipmap");
-	if(!glGenerateMipmap)
-	{
-		return false;
-	}
-
-	glDisableVertexAttribArray = (PFNGLDISABLEVERTEXATTRIBARRAYPROC)wglGetProcAddress("glDisableVertexAttribArray");
-	if(!glDisableVertexAttribArray)
-	{
-		return false;
-	}
-
-	glUniform3fv = (PFNGLUNIFORM3FVPROC)wglGetProcAddress("glUniform3fv");
-	if(!glUniform3fv)
-	{
-		return false;
-	}
-
-	glUniform4fv = (PFNGLUNIFORM4FVPROC)wglGetProcAddress("glUniform4fv");
-	if(!glUniform4fv)
+	if (!wglSwapIntervalEXT)
 	{
 		return false;
 	}
@@ -543,70 +269,69 @@ bool OpenGL::loadExtensionList()
 
 void OpenGL::getWorldMatrix(float* matrix)
 {
-	matrix[0]  = m_worldMatrix[0];
-	matrix[1]  = m_worldMatrix[1];
-	matrix[2]  = m_worldMatrix[2];
-	matrix[3]  = m_worldMatrix[3];
+	matrix[0] = modelMatrix[0];
+	matrix[1] = modelMatrix[1];
+	matrix[2] = modelMatrix[2];
+	matrix[3] = modelMatrix[3];
 
-	matrix[4]  = m_worldMatrix[4];
-	matrix[5]  = m_worldMatrix[5];
-	matrix[6]  = m_worldMatrix[6];
-	matrix[7]  = m_worldMatrix[7];
+	matrix[4] = modelMatrix[4];
+	matrix[5] = modelMatrix[5];
+	matrix[6] = modelMatrix[6];
+	matrix[7] = modelMatrix[7];
 
-	matrix[8]  = m_worldMatrix[8];
-	matrix[9]  = m_worldMatrix[9];
-	matrix[10] = m_worldMatrix[10];
-	matrix[11] = m_worldMatrix[11];
+	matrix[8] = modelMatrix[8];
+	matrix[9] = modelMatrix[9];
+	matrix[10] = modelMatrix[10];
+	matrix[11] = modelMatrix[11];
 
-	matrix[12] = m_worldMatrix[12];
-	matrix[13] = m_worldMatrix[13];
-	matrix[14] = m_worldMatrix[14];
-	matrix[15] = m_worldMatrix[15];
+	matrix[12] = modelMatrix[12];
+	matrix[13] = modelMatrix[13];
+	matrix[14] = modelMatrix[14];
+	matrix[15] = modelMatrix[15];
 }
 
 void OpenGL::getProjectionMatrix(float* matrix)
 {
-	matrix[0]  = m_projectionMatrix[0];
-	matrix[1]  = m_projectionMatrix[1];
-	matrix[2]  = m_projectionMatrix[2];
-	matrix[3]  = m_projectionMatrix[3];
+	matrix[0] = projectionMatrix[0];
+	matrix[1] = projectionMatrix[1];
+	matrix[2] = projectionMatrix[2];
+	matrix[3] = projectionMatrix[3];
 
-	matrix[4]  = m_projectionMatrix[4];
-	matrix[5]  = m_projectionMatrix[5];
-	matrix[6]  = m_projectionMatrix[6];
-	matrix[7]  = m_projectionMatrix[7];
+	matrix[4] = projectionMatrix[4];
+	matrix[5] = projectionMatrix[5];
+	matrix[6] = projectionMatrix[6];
+	matrix[7] = projectionMatrix[7];
 
-	matrix[8]  = m_projectionMatrix[8];
-	matrix[9]  = m_projectionMatrix[9];
-	matrix[10] = m_projectionMatrix[10];
-	matrix[11] = m_projectionMatrix[11];
+	matrix[8] = projectionMatrix[8];
+	matrix[9] = projectionMatrix[9];
+	matrix[10] = projectionMatrix[10];
+	matrix[11] = projectionMatrix[11];
 
-	matrix[12] = m_projectionMatrix[12];
-	matrix[13] = m_projectionMatrix[13];
-	matrix[14] = m_projectionMatrix[14];
-	matrix[15] = m_projectionMatrix[15];
+	matrix[12] = projectionMatrix[12];
+	matrix[13] = projectionMatrix[13];
+	matrix[14] = projectionMatrix[14];
+	matrix[15] = projectionMatrix[15];
 }
 
-void OpenGL::getVideoCardInfo(char* cardName) const
+std::string OpenGL::getVideoCardInfo()
 {
-	strcpy_s(cardName, 128, m_videoCardDescription);
+	return videoCardDescription;
 }
-
 
 void OpenGL::buildIdentityMatrix(float* matrix)
 {
-	matrix[0]  = 1.0f;
-	matrix[1]  = 0.0f;
-	matrix[2]  = 0.0f;
-	matrix[3]  = 0.0f;
+	matrix[0] = 1.0f;
+	matrix[1] = 0.0f;
+	matrix[2] = 0.0f;
+	matrix[3] = 0.0f;
 
-	matrix[4]  = 0.0f;
-	matrix[5]  = 1.0f;
-	matrix[6]  = 0.0f;
-	matrix[7]  = 0.0f;
+	matrix[4] = 0.0f;
+	matrix[5] = 1.0f;
+	matrix[6] = 0.0f;
+	matrix[7] = 0.0f;
 
-	matrix[8]  = 0.0f;
-	matrix[9]  = 0.0f;
+	matrix[8] = 0.0f;
+	matrix[9] = 0.0f;
 	matrix[10] = 1.0f;
 	matrix[11] = 0.0f;
 
@@ -617,21 +342,20 @@ void OpenGL::buildIdentityMatrix(float* matrix)
 
 }
 
-
 void OpenGL::buildPerspectiveFovLhMatrix(float* matrix, float fieldOfView, float screenAspect, float screenNear, float screenDepth) const
 {
-	matrix[0]  = 1.0f / (screenAspect * tan(fieldOfView * 0.5f));
-	matrix[1]  = 0.0f;
-	matrix[2]  = 0.0f;
-	matrix[3]  = 0.0f;
+	matrix[0] = 1.0f / (screenAspect * tan(fieldOfView * 0.5f));
+	matrix[1] = 0.0f;
+	matrix[2] = 0.0f;
+	matrix[3] = 0.0f;
 
-	matrix[4]  = 0.0f;
-	matrix[5]  = 1.0f / tan(fieldOfView * 0.5f);
-	matrix[6]  = 0.0f;
-	matrix[7]  = 0.0f;
+	matrix[4] = 0.0f;
+	matrix[5] = 1.0f / tan(fieldOfView * 0.5f);
+	matrix[6] = 0.0f;
+	matrix[7] = 0.0f;
 
-	matrix[8]  = 0.0f;
-	matrix[9]  = 0.0f;
+	matrix[8] = 0.0f;
+	matrix[9] = 0.0f;
 	matrix[10] = screenDepth / (screenDepth - screenNear);
 	matrix[11] = 1.0f;
 
@@ -642,21 +366,20 @@ void OpenGL::buildPerspectiveFovLhMatrix(float* matrix, float fieldOfView, float
 
 }
 
-
 void OpenGL::matrixRotationY(float* matrix, float angle)
 {
-	matrix[0]  = cosf(angle);
-	matrix[1]  = 0.0f;
-	matrix[2]  = -sinf(angle);
-	matrix[3]  = 0.0f;
+	matrix[0] = cosf(angle);
+	matrix[1] = 0.0f;
+	matrix[2] = -sinf(angle);
+	matrix[3] = 0.0f;
 
-	matrix[4]  = 0.0f;
-	matrix[5]  = 1.0f;
-	matrix[6]  = 0.0f;
-	matrix[7]  = 0.0f;
+	matrix[4] = 0.0f;
+	matrix[5] = 1.0f;
+	matrix[6] = 0.0f;
+	matrix[7] = 0.0f;
 
-	matrix[8]  = sinf(angle);
-	matrix[9]  = 0.0f;
+	matrix[8] = sinf(angle);
+	matrix[9] = 0.0f;
 	matrix[10] = cosf(angle);
 	matrix[11] = 0.0f;
 
@@ -667,21 +390,20 @@ void OpenGL::matrixRotationY(float* matrix, float angle)
 
 }
 
-
 void OpenGL::matrixTranslation(float* matrix, float x, float y, float z)
 {
-	matrix[0]  = 1.0f;
-	matrix[1]  = 0.0f;
-	matrix[2]  = 0.0f;
-	matrix[3]  = 0.0f;
+	matrix[0] = 1.0f;
+	matrix[1] = 0.0f;
+	matrix[2] = 0.0f;
+	matrix[3] = 0.0f;
 
-	matrix[4]  = 0.0f;
-	matrix[5]  = 1.0f;
-	matrix[6]  = 0.0f;
-	matrix[7]  = 0.0f;
+	matrix[4] = 0.0f;
+	matrix[5] = 1.0f;
+	matrix[6] = 0.0f;
+	matrix[7] = 0.0f;
 
-	matrix[8]  = 0.0f;
-	matrix[9]  = 0.0f;
+	matrix[8] = 0.0f;
+	matrix[9] = 0.0f;
 	matrix[10] = 1.0f;
 	matrix[11] = 0.0f;
 
@@ -689,24 +411,22 @@ void OpenGL::matrixTranslation(float* matrix, float x, float y, float z)
 	matrix[13] = y;
 	matrix[14] = z;
 	matrix[15] = 1.0f;
-
 }
-
 
 void OpenGL::matrixMultiply(float* result, float* matrix1, float* matrix2)
 {
-	result[0]  = (matrix1[0] * matrix2[0]) + (matrix1[1] * matrix2[4]) + (matrix1[2] * matrix2[8]) + (matrix1[3] * matrix2[12]);
-	result[1]  = (matrix1[0] * matrix2[1]) + (matrix1[1] * matrix2[5]) + (matrix1[2] * matrix2[9]) + (matrix1[3] * matrix2[13]);
-	result[2]  = (matrix1[0] * matrix2[2]) + (matrix1[1] * matrix2[6]) + (matrix1[2] * matrix2[10]) + (matrix1[3] * matrix2[14]);
-	result[3]  = (matrix1[0] * matrix2[3]) + (matrix1[1] * matrix2[7]) + (matrix1[2] * matrix2[11]) + (matrix1[3] * matrix2[15]);
+	result[0] = (matrix1[0] * matrix2[0]) + (matrix1[1] * matrix2[4]) + (matrix1[2] * matrix2[8]) + (matrix1[3] * matrix2[12]);
+	result[1] = (matrix1[0] * matrix2[1]) + (matrix1[1] * matrix2[5]) + (matrix1[2] * matrix2[9]) + (matrix1[3] * matrix2[13]);
+	result[2] = (matrix1[0] * matrix2[2]) + (matrix1[1] * matrix2[6]) + (matrix1[2] * matrix2[10]) + (matrix1[3] * matrix2[14]);
+	result[3] = (matrix1[0] * matrix2[3]) + (matrix1[1] * matrix2[7]) + (matrix1[2] * matrix2[11]) + (matrix1[3] * matrix2[15]);
 
-	result[4]  = (matrix1[4] * matrix2[0]) + (matrix1[5] * matrix2[4]) + (matrix1[6] * matrix2[8]) + (matrix1[7] * matrix2[12]);
-	result[5]  = (matrix1[4] * matrix2[1]) + (matrix1[5] * matrix2[5]) + (matrix1[6] * matrix2[9]) + (matrix1[7] * matrix2[13]);
-	result[6]  = (matrix1[4] * matrix2[2]) + (matrix1[5] * matrix2[6]) + (matrix1[6] * matrix2[10]) + (matrix1[7] * matrix2[14]);
-	result[7]  = (matrix1[4] * matrix2[3]) + (matrix1[5] * matrix2[7]) + (matrix1[6] * matrix2[11]) + (matrix1[7] * matrix2[15]);
+	result[4] = (matrix1[4] * matrix2[0]) + (matrix1[5] * matrix2[4]) + (matrix1[6] * matrix2[8]) + (matrix1[7] * matrix2[12]);
+	result[5] = (matrix1[4] * matrix2[1]) + (matrix1[5] * matrix2[5]) + (matrix1[6] * matrix2[9]) + (matrix1[7] * matrix2[13]);
+	result[6] = (matrix1[4] * matrix2[2]) + (matrix1[5] * matrix2[6]) + (matrix1[6] * matrix2[10]) + (matrix1[7] * matrix2[14]);
+	result[7] = (matrix1[4] * matrix2[3]) + (matrix1[5] * matrix2[7]) + (matrix1[6] * matrix2[11]) + (matrix1[7] * matrix2[15]);
 
-	result[8]  = (matrix1[8] * matrix2[0]) + (matrix1[9] * matrix2[4]) + (matrix1[10] * matrix2[8]) + (matrix1[11] * matrix2[12]);
-	result[9]  = (matrix1[8] * matrix2[1]) + (matrix1[9] * matrix2[5]) + (matrix1[10] * matrix2[9]) + (matrix1[11] * matrix2[13]);
+	result[8] = (matrix1[8] * matrix2[0]) + (matrix1[9] * matrix2[4]) + (matrix1[10] * matrix2[8]) + (matrix1[11] * matrix2[12]);
+	result[9] = (matrix1[8] * matrix2[1]) + (matrix1[9] * matrix2[5]) + (matrix1[10] * matrix2[9]) + (matrix1[11] * matrix2[13]);
 	result[10] = (matrix1[8] * matrix2[2]) + (matrix1[9] * matrix2[6]) + (matrix1[10] * matrix2[10]) + (matrix1[11] * matrix2[14]);
 	result[11] = (matrix1[8] * matrix2[3]) + (matrix1[9] * matrix2[7]) + (matrix1[10] * matrix2[11]) + (matrix1[11] * matrix2[15]);
 
@@ -714,6 +434,5 @@ void OpenGL::matrixMultiply(float* result, float* matrix1, float* matrix2)
 	result[13] = (matrix1[12] * matrix2[1]) + (matrix1[13] * matrix2[5]) + (matrix1[14] * matrix2[9]) + (matrix1[15] * matrix2[13]);
 	result[14] = (matrix1[12] * matrix2[2]) + (matrix1[13] * matrix2[6]) + (matrix1[14] * matrix2[10]) + (matrix1[15] * matrix2[14]);
 	result[15] = (matrix1[12] * matrix2[3]) + (matrix1[13] * matrix2[7]) + (matrix1[14] * matrix2[11]) + (matrix1[15] * matrix2[15]);
-
 }
 

@@ -14,15 +14,12 @@ class Texture
 	};
 
 public:
-	Texture();
-	Texture(const Texture&);
+	Texture(char* filename, unsigned int textureUnit, bool wrap);
 	~Texture();
-	bool initialize(OpenGL*, char*, unsigned int, bool);
-	void shutdown();
 
 private:
-	bool loadTarga(OpenGL*, char*, unsigned int, bool);
+	bool loadTarga(char*, unsigned int, bool);
 
 	bool loaded;
-	unsigned int m_textureID;
+	unsigned int textureID;
 };

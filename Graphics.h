@@ -13,20 +13,16 @@ const float SCREEN_NEAR = 0.1f;
 class Graphics
 {
 public:
-	Graphics();
-	Graphics(const Graphics&);
+	Graphics(OpenGL* OpenGL);
 	~Graphics();
-
-	bool initialize(OpenGL*, HWND);
-	void shutdown();
-	bool frame() const;
+	bool render() const;
 
 private:
-	bool render(float) const;
+	bool initialize();
 
-	OpenGL* m_OpenGL;
-	Camera* m_Camera;
-	Model* m_Model;
-	Shader* m_LightShader;
-	Light* m_Light;
+	OpenGL* context;
+	Camera* camera;
+	Model* model;
+	Shader* shader;
+	Light* light;
 };

@@ -14,7 +14,7 @@ public:
 	void getAmbientLight(float*);
 
 private:
-	float m_diffuseColor[4];
-	float m_direction[3];
-	float m_ambientLight[4];
+	float diffuseColor[4] = {};
+	float direction[3] = {};
+	float ambientLight[4] = {};
 };

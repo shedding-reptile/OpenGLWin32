@@ -1,8 +1,8 @@
 #pragma once
 
-#include "OpenGL.h"
 #include "Input.h"
 #include "Graphics.h"
+#include <string>
 
 class Application
 {
@@ -13,22 +13,22 @@ public:
 	bool init();
 	void close();
 	void run() const;
-	LRESULT CALLBACK MessageHandler(HWND, UINT, WPARAM, LPARAM) const;
+	LRESULT CALLBACK messageHandler(HWND, UINT, WPARAM, LPARAM) const;
 
 private:
 	bool frame() const;
 	bool initWindow(OpenGL*, int&, int&);
 	void closeWindow();
+	std::wstring strToWstr(const std::string str);
 
-	HINSTANCE hInstance;
-	HWND hWnd;
+	HINSTANCE instance;
+	HWND wnd;
 	static const int maxLoadString = 100;
-	HINSTANCE hInst;
-	WCHAR szTitle[maxLoadString];
-	WCHAR szWindowClass[maxLoadString];
-	OpenGL* m_OpenGL;
-	Input* m_Input;
-	Graphics* m_Graphics;
+	WCHAR title[maxLoadString];
+	WCHAR windowClass[maxLoadString];
+	OpenGL* openGLContext;
+	Input* input;
+	Graphics* graphics;
 };
 
 static Application* applicationHandle = nullptr;

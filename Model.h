@@ -19,24 +19,24 @@ class Model
 	};
 
 public:
-	Model();
-	Model(const Model&);
-	~Model() = default;
-	bool initialize(OpenGL*, char*, char*, unsigned int, bool);
-	void shutdown(OpenGL*);
-	void render(OpenGL*) const;
+	Model(char* modelFilename, char* textureFilename, unsigned int textureUnit, bool wrap);
+	~Model();
+	void render() const;
 
 private:
-	bool initializeBuffers(OpenGL*);
-	void shutdownBuffers(OpenGL*) const;
-	void renderBuffers(OpenGL*) const;
-	bool loadTexture(OpenGL*, char*, unsigned int, bool);
+	bool initializeBuffers();
+	void shutdownBuffers() const;
+	void renderBuffers() const;
+	bool loadTexture(char*, unsigned int, bool);
 	void releaseTexture();
 	bool loadModel(char*);
 	void releaseModel();
 
-	int m_vertexCount, m_indexCount;
-	unsigned int m_vertexArrayId, m_vertexBufferId, m_indexBufferId;
-	Texture* m_Texture;
-	ModelType* m_model;
+	unsigned vertexCount;
+	unsigned indexCount;
+	unsigned vertexArrayId;
+	GLuint vertexBufferId;
+	GLuint indexBufferId;
+	Texture* texture;
+	ModelType* type;
 };

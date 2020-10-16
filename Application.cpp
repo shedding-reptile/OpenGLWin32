@@ -1,38 +1,39 @@
 #include "Application.h"
 #include "resource.h"
+#include <exception>
+#include <cwchar>
+#include <vector>
 
 INT_PTR CALLBACK About(HWND, UINT, WPARAM, LPARAM);
 static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 Application::Application() :
-	hInstance(nullptr),
-	hWnd(nullptr),
-	hInst(nullptr),
-	szTitle{},
-	szWindowClass{},
-	m_OpenGL(nullptr),
-	m_Input(nullptr),
-	m_Graphics(nullptr)
+	instance(nullptr),
+	wnd(nullptr),
+	title{},
+	windowClass{},
+	openGLContext(nullptr),
+	input(nullptr),
+	graphics(nullptr)
 {
 }
 
 Application::Application(const Application& other) :
-	hInstance(nullptr),
-	hWnd(nullptr),
-	hInst(nullptr),
-	szTitle{},
-	szWindowClass{},
-	m_OpenGL(nullptr),
-	m_Input(nullptr),
-	m_Graphics(nullptr)
+	instance(nullptr),
+	wnd(nullptr),
+	title{},
+	windowClass{},
+	openGLContext(nullptr),
+	input(nullptr),
+	graphics(nullptr)
 {
 }
 
 bool Application::init()
 {
 	// Create the OpenGL object.
-	m_OpenGL = new OpenGL;
-	if (!m_OpenGL)
+	openGLContext = new OpenGL(wnd);
+	if (!openGLContext)
 	{
 		return false;
 	}
@@ -40,56 +41,60 @@ bool Application::init()
 	// Create the window the application will be using and also initialize OpenGL.
 	int screenWidth = 0;
 	int screenHeight = 0;
-	if (!initWindow(m_OpenGL, screenWidth, screenHeight))
+	if (!initWindow(openGLContext, screenWidth, screenHeight))
 	{
-		MessageBox(hWnd, L"Could not initialize the window.", L"Error", MB_OK);
+		MessageBox(wnd, L"Could not initialize the window.", L"Error", MB_OK);
 		return false;
 	}
 
 	// Create the input object.  This object will be used to handle reading the input from the user.
-	m_Input = new Input;
-	if (!m_Input)
+	input = new Input;
+	if (!input)
 	{
 		return false;
 	}
 
-	// Initialize the input object.
-	m_Input->initialize();
-
 	// Create the graphics object.  This object will handle rendering all the graphics for this application.
-	m_Graphics = new Graphics;
-	if (!m_Graphics)
+	try
+	{
+		graphics = new Graphics(openGLContext);
+	}
+	catch (const std::exception& e)
+	{
+		std::wstring error = strToWstr(e.what());
+		MessageBox(wnd, error.c_str(), L"Error", MB_OK);
+	}
+	
+	if (!graphics)
 	{
 		return false;
 	}
 
 	// Initialize the graphics object.
-	 return m_Graphics->initialize(m_OpenGL, hWnd);
+	 return true;
 }
 
 void Application::close()
 {
 	// Release the graphics object.
-	if (m_Graphics)
+	if (graphics)
 	{
-		m_Graphics->shutdown();
-		delete m_Graphics;
-		m_Graphics = nullptr;
+		delete graphics;
+		graphics = nullptr;
 	}
 
 	// Release the input object.
-	if (m_Input)
+	if (input)
 	{
-		delete m_Input;
-		m_Input = nullptr;
+		delete input;
+		input = nullptr;
 	}
 
 	// Release the OpenGL object.
-	if (m_OpenGL)
+	if (openGLContext)
 	{
-		m_OpenGL->shutdown(hWnd);
-		delete m_OpenGL;
-		m_OpenGL = nullptr;
+		delete openGLContext;
+		openGLContext = nullptr;
 	}
 
 	// Shutdown the window.
@@ -132,13 +137,13 @@ void Application::run() const
 bool Application::frame() const
 {
 	// Check if the user pressed escape and wants to exit the application.
-	if (m_Input->isKeyDown(VK_ESCAPE))
+	if (input->isKeyDown(VK_ESCAPE))
 	{
 		return false;
 	}
 
 	// Do the frame processing for the graphics object.
-	bool result = m_Graphics->frame();
+	bool result = graphics->render();
 	if (!result)
 	{
 		return false;
@@ -147,7 +152,7 @@ bool Application::frame() const
 	return true;
 }
 
-LRESULT CALLBACK Application::MessageHandler(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) const
+LRESULT CALLBACK Application::messageHandler(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) const
 {
 	switch (message)
 	{
@@ -158,26 +163,26 @@ LRESULT CALLBACK Application::MessageHandler(HWND hwnd, UINT message, WPARAM wPa
 		switch (wmId)
 		{
 		case IDM_ABOUT:
-			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+			DialogBox(instance, MAKEINTRESOURCE(IDD_ABOUTBOX), wnd, About);
 			break;
 		case IDM_EXIT:
 			PostQuitMessage(0);
 			return 0;
 		default:
-			return DefWindowProc(hWnd, message, wParam, lParam);
+			return DefWindowProc(wnd, message, wParam, lParam);
 		}
 	}
 	break;
 	// Check if a key has been pressed on the keyboard.
 	case WM_KEYDOWN:
 		// If a key is pressed send it to the input object so it can record that state.
-		m_Input->keyDown((unsigned int)wParam);
+		input->keyDown((unsigned int)wParam);
 		return 0;
 
 		// Check if a key has been released on the keyboard.
 	case WM_KEYUP:
 		// If a key is released then send it to the input object so it can unset the state for that key.
-		m_Input->keyUp((unsigned int)wParam);
+		input->keyUp((unsigned int)wParam);
 		return 0;
 	default:
 		;
@@ -193,10 +198,10 @@ bool Application::initWindow(OpenGL* OpenGL, int& screenWidth, int& screenHeight
 	applicationHandle = this;
 
 	// Get the instance of this application.
-	hInstance = GetModuleHandle(nullptr);
+	instance = GetModuleHandle(nullptr);
 
-	LoadStringW(hInstance, IDS_APP_TITLE, szTitle, maxLoadString);
-	LoadStringW(hInstance, IDC_OPENGLWIN32, szWindowClass, maxLoadString);
+	LoadStringW(instance, IDS_APP_TITLE, title, maxLoadString);
+	LoadStringW(instance, IDC_OPENGLWIN32, windowClass, maxLoadString);
 
 	// Setup the windows class with default settings.
 	WNDCLASSEX wcex;
@@ -204,72 +209,72 @@ bool Application::initWindow(OpenGL* OpenGL, int& screenWidth, int& screenHeight
 	wcex.lpfnWndProc = WndProc;
 	wcex.cbClsExtra = 0;
 	wcex.cbWndExtra = 0;
-	wcex.hInstance = hInstance;
-	wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_OPENGLWIN32));
+	wcex.hInstance = instance;
+	wcex.hIcon = LoadIcon(instance, MAKEINTRESOURCE(IDI_OPENGLWIN32));
 	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 	wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_OPENGLWIN32);
-	wcex.lpszClassName = szWindowClass;
+	wcex.lpszClassName = windowClass;
 	wcex.cbSize = sizeof(WNDCLASSEX);
 
 	// Register the window class.
 	RegisterClassExW(&wcex);
 
 	// Create a temporary window for the OpenGL extension setup.
-	hWnd = CreateWindowW(szWindowClass, szTitle, WS_POPUP,
-		0, 0, 640, 480, nullptr, nullptr, hInstance, nullptr);
-	if (hWnd == nullptr)
+	wnd = CreateWindowW(windowClass, title, WS_POPUP,
+		0, 0, 640, 480, nullptr, nullptr, instance, nullptr);
+	if (wnd == nullptr)
 	{
 		return false;
 	}
 
 	// Don't show the window.
-	ShowWindow(hWnd, SW_HIDE);
+	ShowWindow(wnd, SW_HIDE);
 
 	// Initialize a temporary OpenGL window and load the OpenGL extensions.
-	bool result = OpenGL->initializeExtensions(hWnd);
+	bool result = OpenGL->initializeExtensions(wnd);
 	if (!result)
 	{
-		MessageBox(hWnd, L"Could not initialize the OpenGL extensions.", L"Error", MB_OK);
+		MessageBox(wnd, L"Could not initialize the OpenGL extensions.", L"Error", MB_OK);
 		return false;
 	}
 
 	// Release the temporary window now that the extensions have been initialized.
-	DestroyWindow(hWnd);
-	hWnd = nullptr;
+	DestroyWindow(wnd);
+	wnd = nullptr;
 
 	// Determine the resolution of the clients desktop screen.
 	screenWidth = GetSystemMetrics(SM_CXSCREEN);
 	screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
 	// Create the window with the screen settings and get the handle to it.
-	hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
-	if (hWnd == nullptr)
+	wnd = CreateWindowW(windowClass, title, WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, instance, nullptr);
+	if (wnd == nullptr)
 	{
 		return false;
 	}
 
 	RECT rect;
-	if (GetWindowRect(hWnd, &rect))
+	if (GetWindowRect(wnd, &rect))
 	{
 		screenWidth = rect.right - rect.left;
 		screenHeight = rect.bottom - rect.top;
 	}
 
 	// Initialize OpenGL now that the window has been created.
-	result = m_OpenGL->initializeOpenGl(hWnd, screenWidth, screenHeight, SCREEN_DEPTH, SCREEN_NEAR, VSYNC_ENABLED);
+	result = openGLContext->initializeOpenGl(wnd, screenWidth, screenHeight, SCREEN_DEPTH, SCREEN_NEAR, VSYNC_ENABLED);
 	if (!result)
 	{
-		MessageBox(hWnd, L"Could not initialize OpenGL, check if video card supports OpenGL 4.0.", L"Error", MB_OK);
+		MessageBox(wnd, L"Could not initialize OpenGL, check if video card supports OpenGL 4.0.", L"Error", MB_OK);
 		return false;
 	}
 
 	// Bring the window up on the screen and set it as main focus.
-	ShowWindow(hWnd, SW_SHOW);
-	SetForegroundWindow(hWnd);
-	SetFocus(hWnd);
+	ShowWindow(wnd, SW_SHOW);
+	SetForegroundWindow(wnd);
+	SetFocus(wnd);
 
 	return true;
 }
@@ -277,12 +282,12 @@ bool Application::initWindow(OpenGL* OpenGL, int& screenWidth, int& screenHeight
 void Application::closeWindow()
 {
 	// Remove the window.
-	DestroyWindow(hWnd);
-	hWnd = nullptr;
+	DestroyWindow(wnd);
+	wnd = nullptr;
 
 	// Remove the application instance.
-	UnregisterClass(szWindowClass, hInstance);
-	hInstance = nullptr;
+	UnregisterClass(windowClass, instance);
+	instance = nullptr;
 
 	// Release the pointer to this class.
 	applicationHandle = nullptr;
@@ -302,7 +307,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	// All other messages pass to the message handler in the system class.
 	default:
-		return applicationHandle->MessageHandler(hWnd, message, wParam, lParam);
+		return applicationHandle->messageHandler(hWnd, message, wParam, lParam);
 	}
 }
 
@@ -326,4 +331,14 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		;
 	}
 	return (INT_PTR)FALSE;
+}
+
+std::wstring Application::strToWstr(const std::string str)
+{
+	const char* mbstr = str.c_str();
+	std::mbstate_t state = std::mbstate_t();
+	std::size_t len = 1 + std::mbsrtowcs(NULL, &mbstr, 0, &state);
+	std::vector<wchar_t> wstr(len);
+	std::mbsrtowcs(&wstr[0], &mbstr, wstr.size(), &state);
+	return std::wstring(&wstr[0]);
 }

@@ -1,43 +1,27 @@
 #include "Texture.h"
 #include <cstdio>
 
-Texture::Texture(): m_textureID(0)
+Texture::Texture(char* filename, unsigned int textureUnit, bool wrap): loaded(false), textureID(0)
 {
-	loaded = false;
-}
-
-Texture::Texture(const Texture& other): loaded(false), m_textureID(0)
-{
+	// Load the targa file.
+	const bool result = loadTarga(filename, textureUnit, wrap);
+	if (!result)
+	{
+		throw std::exception("Cannot initialize texture!");
+	}
 }
 
 Texture::~Texture()
 {
-}
-
-bool Texture::initialize(OpenGL* OpenGL, char* filename, unsigned int textureUnit, bool wrap)
-{
-	// Load the targa file.
-	const bool result = loadTarga(OpenGL, filename, textureUnit, wrap);
-	if(!result)
-	{
-		return false;
-	}
-
-	return true;
-}
-
-void Texture::shutdown()
-{
 	// If the texture was loaded then make sure to release it on shutdown.
-	if(loaded)
+	if (loaded)
 	{
-		glDeleteTextures(1, &m_textureID);
+		glDeleteTextures(1, &textureID);
 		loaded = false;
 	}
-
 }
 
-bool Texture::loadTarga(OpenGL* OpenGL, char* filename, unsigned int textureUnit, bool wrap)
+bool Texture::loadTarga(char* filename, unsigned int textureUnit, bool wrap)
 {
 	FILE* filePtr;
 	TargaHeader targaFileHeader;
@@ -69,7 +53,7 @@ bool Texture::loadTarga(OpenGL* OpenGL, char* filename, unsigned int textureUnit
 	}
 
 	// Calculate the size of the 32 bit image data.
-	const size_t imageSize = width * height * 4;
+	const int imageSize = width * height * 4;
 
 	// Allocate memory for the targa image data.
 	unsigned char* targaImage = new unsigned char[imageSize];
@@ -93,13 +77,13 @@ bool Texture::loadTarga(OpenGL* OpenGL, char* filename, unsigned int textureUnit
 	}
 
 	// Set the unique texture unit in which to store the data.
-	OpenGL->glActiveTexture(GL_TEXTURE0 + textureUnit);
+	glActiveTexture(GL_TEXTURE0 + textureUnit);
 
 	// Generate an ID for the texture.
-	glGenTextures(1, &m_textureID);
+	glGenTextures(1, &textureID);
 
 	// Bind the texture as a 2D texture.
-	glBindTexture(GL_TEXTURE_2D, m_textureID);
+	glBindTexture(GL_TEXTURE_2D, textureID);
 
 	// Load the image data into the texture unit.
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, targaImage);
@@ -121,7 +105,7 @@ bool Texture::loadTarga(OpenGL* OpenGL, char* filename, unsigned int textureUnit
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
 	// Generate mipmaps for the texture.
-	OpenGL->glGenerateMipmap(GL_TEXTURE_2D);
+	glGenerateMipmap(GL_TEXTURE_2D);
 
 	// Release the targa image data.
 	delete [] targaImage;

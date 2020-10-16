@@ -15,7 +15,6 @@ public:
 
 	void setPosition(float, float, float);
 	void setRotation(float, float, float);
-
 	void render();
 	void getViewMatrix(float*);
 
@@ -24,7 +23,11 @@ private:
 	static void transformCoord(VectorType&, float*);
 	void buildViewMatrix(VectorType, VectorType, VectorType);
 
-	float m_positionX, m_positionY, m_positionZ;
-	float m_rotationX, m_rotationY, m_rotationZ;
-	float m_viewMatrix[16];
+	float posX;
+	float posY;
+	float posZ;
+	float rotX;
+	float rotY;
+	float rotZ;
+	float viewMatrix[16];
 };
