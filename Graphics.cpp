@@ -1,14 +1,13 @@
 #include "Graphics.h"
 #include <exception>
 
-Graphics::Graphics(OpenGL* OpenGL)
+Graphics::Graphics(OpenGL* OpenGL) :
+	context(nullptr),
+	camera(nullptr),
+	model(nullptr),
+	shader(nullptr),
+	light(nullptr)
 {
-	context = nullptr;
-	camera = nullptr;
-	model = nullptr;
-	shader = nullptr;
-	light = nullptr;
-
 	// Store a pointer to the OpenGL class object.
 	context = OpenGL;
 
@@ -43,19 +42,12 @@ Graphics::~Graphics()
 	{
 		delete camera;
 	}
-
-	// Release the pointer to the OpenGL class object.
-	context = nullptr;
 }
 
 bool Graphics::initialize()
 {
 	// Create the camera object.
 	camera = new Camera;
-	if (!camera)
-	{
-		return false;
-	}
 
 	// Set the initial position of the camera.
 	camera->setPosition(0.0f, 0.0f, -10.0f);
@@ -69,7 +61,7 @@ bool Graphics::initialize()
 	{
 		throw;
 	}
-	
+
 	// Create the light shader object.
 	try
 	{
@@ -79,13 +71,9 @@ bool Graphics::initialize()
 	{
 		throw;
 	}
-	
+
 	// Create the light object.
 	light = new Light;
-	if (!light)
-	{
-		return false;
-	}
 
 	// Initialize the light object.
 	light->setDiffuseColor(1.0f, 1.0f, 1.0f, 1.0f);

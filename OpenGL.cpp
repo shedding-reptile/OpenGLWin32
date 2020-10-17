@@ -7,10 +7,10 @@ OpenGL::OpenGL(HWND parent) :
 	wglCreateContextAttribsARB(nullptr),
 	wglSwapIntervalEXT(nullptr),
 	modelMatrix{},
-	projectionMatrix{}
+	projectionMatrix{},
+	deviceContext(nullptr),
+	renderingContext(nullptr)
 {
-	deviceContext = nullptr;
-	renderingContext = nullptr;
 	hWnd = parent;
 }
 
@@ -335,7 +335,6 @@ void OpenGL::buildIdentityMatrix(float* matrix)
 	matrix[13] = 0.0f;
 	matrix[14] = 0.0f;
 	matrix[15] = 1.0f;
-
 }
 
 void OpenGL::buildPerspectiveFovLhMatrix(float* matrix, float fieldOfView, float screenAspect, float screenNear, float screenDepth) const
@@ -359,7 +358,6 @@ void OpenGL::buildPerspectiveFovLhMatrix(float* matrix, float fieldOfView, float
 	matrix[13] = 0.0f;
 	matrix[14] = (-screenNear * screenDepth) / (screenDepth - screenNear);
 	matrix[15] = 0.0f;
-
 }
 
 void OpenGL::matrixRotationY(float* matrix, float angle)
@@ -383,7 +381,6 @@ void OpenGL::matrixRotationY(float* matrix, float angle)
 	matrix[13] = 0.0f;
 	matrix[14] = 0.0f;
 	matrix[15] = 1.0f;
-
 }
 
 void OpenGL::matrixTranslation(float* matrix, float x, float y, float z)
@@ -406,8 +403,7 @@ void OpenGL::matrixTranslation(float* matrix, float x, float y, float z)
 	matrix[12] = x;
 	matrix[13] = y;
 	matrix[14] = z;
-	matrix[15] = 1.0f;
-}
+	matrix[15] = 1.0f;}
 
 void OpenGL::matrixMultiply(float* result, float* matrix1, float* matrix2)
 {
@@ -431,4 +427,3 @@ void OpenGL::matrixMultiply(float* result, float* matrix1, float* matrix2)
 	result[14] = (matrix1[12] * matrix2[2]) + (matrix1[13] * matrix2[6]) + (matrix1[14] * matrix2[10]) + (matrix1[15] * matrix2[14]);
 	result[15] = (matrix1[12] * matrix2[3]) + (matrix1[13] * matrix2[7]) + (matrix1[14] * matrix2[11]) + (matrix1[15] * matrix2[15]);
 }
-

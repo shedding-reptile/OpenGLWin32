@@ -16,27 +16,8 @@ Application::Application() :
 	input(nullptr),
 	graphics(nullptr)
 {
-}
-
-Application::Application(const Application& other) :
-	instance(nullptr),
-	wnd(nullptr),
-	title{},
-	windowClass{},
-	openGLContext(nullptr),
-	input(nullptr),
-	graphics(nullptr)
-{
-}
-
-bool Application::init()
-{
 	// Create the OpenGL object.
 	openGLContext = new OpenGL(wnd);
-	if (!openGLContext)
-	{
-		return false;
-	}
 
 	// Create the window the application will be using and also initialize OpenGL.
 	int screenWidth = 0;
@@ -44,15 +25,11 @@ bool Application::init()
 	if (!initWindow(openGLContext, screenWidth, screenHeight))
 	{
 		MessageBox(wnd, L"Could not initialize the window.", L"Error", MB_OK);
-		return false;
+		return;
 	}
 
 	// Create the input object.  This object will be used to handle reading the input from the user.
 	input = new Input;
-	if (!input)
-	{
-		return false;
-	}
 
 	// Create the graphics object.  This object will handle rendering all the graphics for this application.
 	try
@@ -61,40 +38,29 @@ bool Application::init()
 	}
 	catch (const std::exception& e)
 	{
-        const std::wstring error = strToWstr(e.what());
+		const std::wstring error = strToWstr(e.what());
 		MessageBox(wnd, error.c_str(), L"Error", MB_OK);
 	}
-	
-	if (!graphics)
-	{
-		return false;
-	}
-
-	// Initialize the graphics object.
-	 return true;
 }
 
-void Application::close()
+Application::~Application()
 {
 	// Release the graphics object.
 	if (graphics)
 	{
 		delete graphics;
-		graphics = nullptr;
 	}
 
 	// Release the input object.
 	if (input)
 	{
 		delete input;
-		input = nullptr;
 	}
 
 	// Release the OpenGL object.
 	if (openGLContext)
 	{
 		delete openGLContext;
-		openGLContext = nullptr;
 	}
 
 	// Shutdown the window.
@@ -129,9 +95,7 @@ void Application::run() const
 				done = true;
 			}
 		}
-
 	}
-
 }
 
 bool Application::frame() const
@@ -143,8 +107,7 @@ bool Application::frame() const
 	}
 
 	// Do the frame processing for the graphics object.
-    const bool result = graphics->render();
-	if (!result)
+	if (!graphics->render())
 	{
 		return false;
 	}
@@ -222,8 +185,7 @@ bool Application::initWindow(OpenGL* OpenGL, int& screenWidth, int& screenHeight
 	RegisterClassExW(&wcex);
 
 	// Create a temporary window for the OpenGL extension setup.
-	wnd = CreateWindowW(windowClass, title, WS_POPUP,
-		0, 0, 640, 480, nullptr, nullptr, instance, nullptr);
+	wnd = CreateWindowW(windowClass, title, WS_POPUP, 0, 0, 640, 480, nullptr, nullptr, instance, nullptr);
 	if (wnd == nullptr)
 	{
 		return false;
@@ -233,8 +195,7 @@ bool Application::initWindow(OpenGL* OpenGL, int& screenWidth, int& screenHeight
 	ShowWindow(wnd, SW_HIDE);
 
 	// Initialize a temporary OpenGL window and load the OpenGL extensions.
-	bool result = OpenGL->initializeExtensions(wnd);
-	if (!result)
+	if (!OpenGL->initializeExtensions(wnd))
 	{
 		MessageBox(wnd, L"Could not initialize the OpenGL extensions.", L"Error", MB_OK);
 		return false;
@@ -249,8 +210,7 @@ bool Application::initWindow(OpenGL* OpenGL, int& screenWidth, int& screenHeight
 	screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
 	// Create the window with the screen settings and get the handle to it.
-	wnd = CreateWindowW(windowClass, title, WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, instance, nullptr);
+	wnd = CreateWindowW(windowClass, title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, instance, nullptr);
 	if (wnd == nullptr)
 	{
 		return false;
@@ -264,8 +224,7 @@ bool Application::initWindow(OpenGL* OpenGL, int& screenWidth, int& screenHeight
 	}
 
 	// Initialize OpenGL now that the window has been created.
-	result = openGLContext->initializeOpenGl(wnd, screenWidth, screenHeight, SCREEN_DEPTH, SCREEN_NEAR, VSYNC_ENABLED);
-	if (!result)
+	if (!openGLContext->initializeOpenGl(wnd, screenWidth, screenHeight, SCREEN_DEPTH, SCREEN_NEAR, VSYNC_ENABLED))
 	{
 		MessageBox(wnd, L"Could not initialize OpenGL, check if video card supports OpenGL 4.0.", L"Error", MB_OK);
 		return false;

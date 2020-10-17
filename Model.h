@@ -25,7 +25,7 @@ public:
 	void render() const;
 
 private:
-	bool initializeBuffers();
+	void initializeBuffers();
 	void shutdownBuffers() const;
 	void renderBuffers() const;
 	bool loadTexture(const char*, unsigned int, bool);

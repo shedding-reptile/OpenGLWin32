@@ -12,23 +12,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 	UNREFERENCED_PARAMETER(nCmdShow);
 
-	// Create the system object.
-	Application* app = new Application;
-	if (!app)
-	{
-		return 0;
-	}
-
-	// Initialize and run the system object.
-	if (app->init())
-	{
-		app->run();
-	}
-
-	// Shutdown and release the system object.
-	app->close();
+	Application* app = new Application;	
+	app->run();
 	delete app;
-	app = nullptr;
 
 	return 0;
 }

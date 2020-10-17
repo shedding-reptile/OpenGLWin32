@@ -69,7 +69,6 @@ void Camera::render()
 
 	// Finally create the view matrix from the three updated vectors.
 	buildViewMatrix(position, lookAt, up);
-
 }
 
 void Camera::matrixRotationYawPitchRoll(float* matrix, float yaw, float pitch, float roll)
@@ -95,7 +94,6 @@ void Camera::matrixRotationYawPitchRoll(float* matrix, float yaw, float pitch, f
 	matrix[6] = (cPitch * sYaw);
 	matrix[7] = -sPitch;
 	matrix[8] = (cPitch * cYaw);
-
 }
 
 void Camera::transformCoord(VectorType& vector, float* matrix)

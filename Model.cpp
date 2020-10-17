@@ -19,10 +19,7 @@ Model::Model(const char* modelFilename, const char* textureFilename, unsigned in
 	}
 
 	// Initialize the vertex and index buffers that hold the geometry for the model.
-	if (!initializeBuffers())
-	{
-		throw std::exception("Cannot initialize buffers!");
-	}
+	initializeBuffers();
 
 	// Load the texture for this model.
 	if (!loadTexture(textureFilename, textureUnit, wrap))
@@ -49,14 +46,10 @@ void Model::render() const
 	renderBuffers();
 }
 
-bool Model::initializeBuffers()
+void Model::initializeBuffers()
 {
 	// Create the vertex array.
 	VertexType* vertices = new VertexType[vertexCount];
-	if (!vertices)
-	{
-		return false;
-	}
 
 	// Create the index array.
 	unsigned* indices = new unsigned[indexCount];
@@ -115,10 +108,7 @@ bool Model::initializeBuffers()
 
 	// Now that the buffers have been loaded we can release the array data.
 	delete[] vertices;
-
 	delete[] indices;
-
-	return true;
 }
 
 void Model::shutdownBuffers() const
@@ -138,7 +128,6 @@ void Model::shutdownBuffers() const
 	// Release the vertex array object.
 	glBindVertexArray(0);
 	glDeleteVertexArrays(1, &vertexArrayId);
-
 }
 
 void Model::renderBuffers() const
@@ -148,7 +137,6 @@ void Model::renderBuffers() const
 
 	// Render the vertex buffer using the index buffer.
 	glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, nullptr);
-
 }
 
 bool Model::loadTexture(const char* textureFilename, unsigned int textureUnit, bool wrap)
@@ -172,7 +160,6 @@ void Model::releaseTexture()
 	if (texture)
 	{
 		delete texture;
-		texture = nullptr;
 	}
 }
 
@@ -239,7 +226,5 @@ void Model::releaseModel()
 	if (type)
 	{
 		delete[] type;
-		type = nullptr;
 	}
-
 }

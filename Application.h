@@ -8,10 +8,7 @@ class Application
 {
 public:
 	Application();
-	Application(const Application&);
-	~Application() = default;
-	bool init();
-	void close();
+	~Application();
 	void run() const;
 	LRESULT CALLBACK messageHandler(HWND, UINT, WPARAM, LPARAM) const;
 
