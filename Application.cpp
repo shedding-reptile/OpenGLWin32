@@ -133,6 +133,12 @@ bool Application::frame() const
 		graphics->move(Direction::Right);
 	}
 
+	if (input->isKeyDown(VK_SPACE))
+	{
+		graphics->createDynamic();
+		input->keyUp(VK_SPACE);
+	}
+
 	// Do the frame processing for the graphics object.
 	if (!graphics->render())
 	{

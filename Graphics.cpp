@@ -9,8 +9,13 @@ Graphics::Graphics(OpenGL* OpenGL) :
 	shader(nullptr),
 	light(nullptr),
 	x(0.0f),
-	y(0.0f),
-	z(0.0f)
+	y(5.0f),
+	z(0.0f),
+	pxFoundation(nullptr),
+	physics(nullptr),
+	pxDispatcher(nullptr),
+	scene(nullptr),
+	pxMat(nullptr)
 {
 	// Store a pointer to the OpenGL class object.
 	context = OpenGL;
@@ -46,6 +51,11 @@ Graphics::~Graphics()
 	{
 		delete camera;
 	}
+
+	scene->release();
+	pxDispatcher->release();
+	physics->release();
+	pxFoundation->release();
 }
 
 bool Graphics::initialize()
@@ -86,7 +96,35 @@ bool Graphics::initialize()
 	light->setDirection(1.0f, 0.0f, 0.0f);
 	light->setAmbientLight(0.15f, 0.15f, 0.15f, 1.0f);
 
+	initPhysics();
+
 	return true;
+}
+
+void Graphics::initPhysics()
+{
+	pxFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, pxAllocator, pxErrorCallback);
+
+	physics = PxCreatePhysics(PX_PHYSICS_VERSION, *pxFoundation, physx::PxTolerancesScale(), true);
+
+	physx::PxSceneDesc sceneDesc(physics->getTolerancesScale());
+	sceneDesc.gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);
+	pxDispatcher = physx::PxDefaultCpuDispatcherCreate(2);
+	sceneDesc.cpuDispatcher = pxDispatcher;
+	sceneDesc.filterShader = physx::PxDefaultSimulationFilterShader;
+	scene = physics->createScene(sceneDesc);
+
+	physx::PxPvdSceneClient* pvdClient = scene->getScenePvdClient();
+	if (pvdClient)
+	{
+		pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONSTRAINTS, true);
+		pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
+		pvdClient->setScenePvdFlag(physx::PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
+	}
+	pxMat = physics->createMaterial(0.5f, 0.5f, 0.5f);
+
+	physx::PxRigidStatic* groundPlane = PxCreatePlane(*physics, physx::PxPlane(0, 1, 0, 0), *pxMat);
+	scene->addActor(*groundPlane);
 }
 
 void Graphics::move(Direction dir)
@@ -111,19 +149,17 @@ void Graphics::move(Direction dir)
 	camera->setPosition(x, y, z);
 }
 
+void Graphics::createDynamic()
+{
+	physx::PxTransform t = physx::PxTransform(physx::PxVec3(0, 10, 10));
+	physx::PxRigidDynamic* dynamic = PxCreateDynamic(*physics, t, physx::PxSphereGeometry(1), *pxMat, 1.0f);
+	dynamic->setAngularDamping(0.5f);
+	dynamic->setLinearVelocity(physx::PxVec3(0.3f, -10.0f, 0.5f));
+	scene->addActor(*dynamic);
+}
+
 bool Graphics::render() const
 {
-	static float rotation = 0.0f;
-
-	// Update the rotation variable each frame.
-	rotation += 0.0174532925f * 1.0f;
-	if (rotation > 360.0f)
-	{
-		rotation -= 360.0f;
-	}
-
-	// Render the graphics scene.
-	
 	glm::mat4 projectionMatrix;
 	float lightDirection[3];
 	float diffuseLightColor[4];
@@ -145,15 +181,10 @@ bool Graphics::render() const
 	light->getDiffuseColor(diffuseLightColor);
 	light->getAmbientLight(ambientLight);
 
-	// Rotate the world matrix by the rotation value so that the triangle will spin.
-	modelMatrix = glm::rotate(modelMatrix, rotation, glm::vec3(0.0f, 1.0f, 0.0f));
 
 	// Set the light shader as the current shader program and set the matrices that it will use for rendering.
 	shader->setShader();
-	if (!shader->setMatrices(&modelMatrix[0][0], &viewMatrix[0][0], &projectionMatrix[0][0]))
-	{
-		return false;
-	}
+	
 
 	// Position the light where the camera is.
 	if (!shader->setLightPosition(0.0f, 0.0f, -10.0f))
@@ -166,8 +197,42 @@ bool Graphics::render() const
 		return false;
 	}
 
-	// Render the model using the light shader.
-	model->render();
+	scene->simulate(1.0f / 60.0f);
+	scene->fetchResults(true);
+
+	physx::PxScene* scene;
+	PxGetPhysics().getScenes(&scene, 1);
+	physx::PxU32 nbActors = scene->getNbActors(physx::PxActorTypeFlag::eRIGID_DYNAMIC | physx::PxActorTypeFlag::eRIGID_STATIC);
+
+	if (nbActors)
+	{
+		std::vector<physx::PxRigidActor*> actors(nbActors);
+		scene->getActors(physx::PxActorTypeFlag::eRIGID_DYNAMIC | physx::PxActorTypeFlag::eRIGID_STATIC, reinterpret_cast<physx::PxActor**>(&actors[0]), nbActors);
+
+		physx::PxShape* shapes[128];
+		for (physx::PxU32 i = 1; i < static_cast<physx::PxU32>(actors.size()); i++)
+		{
+			const physx::PxU32 nbShapes = actors[i]->getNbShapes();
+			PX_ASSERT(nbShapes <= MAX_NUM_ACTOR_SHAPES);
+			actors[i]->getShapes(shapes, nbShapes);
+			const bool sleeping = actors[i]->is<physx::PxRigidDynamic>() ? actors[i]->is<physx::PxRigidDynamic>()->isSleeping() : false;
+
+			for (physx::PxU32 j = 0; j < nbShapes; j++)
+			{
+				const physx::PxMat44 shapePose(physx::PxShapeExt::getGlobalPose(*shapes[j], *actors[i]));
+				const physx::PxGeometryHolder h = shapes[j]->getGeometry();
+
+				if (!shader->setMatrices(&shapePose.column0.x, &viewMatrix[0][0], &projectionMatrix[0][0]))
+				{
+					return false;
+				}
+				const physx::PxBoxGeometry& boxGeom = static_cast<const physx::PxBoxGeometry&>(h.any());
+
+				modelMatrix = glm::scale(modelMatrix, glm::vec3(boxGeom.halfExtents.x, boxGeom.halfExtents.y, boxGeom.halfExtents.z));
+				model->render();
+			}
+		}
+	}
 
 	// Present the rendered scene to the screen.
 	context->endScene();

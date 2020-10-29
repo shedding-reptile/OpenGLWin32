@@ -6,7 +6,7 @@ public:
 	Shader();
 	~Shader();
 	void setShader() const;
-	bool setMatrices(float*, float*, float*) const;
+	bool setMatrices(const float * worldMatrix, const float * viewMatrix, const float * projectionMatrix) const;
 	bool setLightPosition(float x, float y, float z) const;
 	bool setObjectColour(float r, float g, float b, float a) const;
 

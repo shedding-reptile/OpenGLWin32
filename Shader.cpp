@@ -189,7 +189,7 @@ void Shader::outputLinkerErrorMessage(unsigned int programId)
 	fout.close();
 }
 
-bool Shader::setMatrices(float* worldMatrix, float* viewMatrix, float* projectionMatrix) const
+bool Shader::setMatrices(const float * worldMatrix, const float * viewMatrix, const float * projectionMatrix) const
 {
 	// Set the world matrix in the vertex shader.
 	unsigned int location = glGetUniformLocation(program, "modelMatrix");
