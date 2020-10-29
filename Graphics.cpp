@@ -1,12 +1,16 @@
 #include "Graphics.h"
 #include <exception>
+#include <glm/gtc/matrix_transform.hpp>
 
 Graphics::Graphics(OpenGL* OpenGL) :
 	context(nullptr),
 	camera(nullptr),
 	model(nullptr),
 	shader(nullptr),
-	light(nullptr)
+	light(nullptr),
+	x(0.0f),
+	y(0.0f),
+	z(0.0f)
 {
 	// Store a pointer to the OpenGL class object.
 	context = OpenGL;
@@ -50,12 +54,14 @@ bool Graphics::initialize()
 	camera = new Camera;
 
 	// Set the initial position of the camera.
-	camera->setPosition(0.0f, 0.0f, -10.0f);
+	z = -10.0f;
+
+	camera->setPosition(x, y, z);
 
 	// Create the model object.
 	try
 	{
-		model = new Model("cube.txt", "opengl.tga", 0, true);
+		model = new Model("monkey.stl");
 	}
 	catch (const std::exception&)
 	{
@@ -83,6 +89,28 @@ bool Graphics::initialize()
 	return true;
 }
 
+void Graphics::move(Direction dir)
+{
+	switch (dir)
+	{
+	case Direction::Left:
+		x += 0.1f;
+		break;
+	case Direction::Right:
+		x -= 0.1f;
+		break;
+	case Direction::Up:
+		z += 0.1f;
+		break;
+	case Direction::Down:
+		z -= 0.1f;
+		break;
+	default:
+		break;
+	}
+	camera->setPosition(x, y, z);
+}
+
 bool Graphics::render() const
 {
 	static float rotation = 0.0f;
@@ -95,9 +123,8 @@ bool Graphics::render() const
 	}
 
 	// Render the graphics scene.
-	float modelMatrix[16];
-	float viewMatrix[16];
-	float projectionMatrix[16];
+	
+	glm::mat4 projectionMatrix;
 	float lightDirection[3];
 	float diffuseLightColor[4];
 	float ambientLight[4];
@@ -109,9 +136,9 @@ bool Graphics::render() const
 	camera->render();
 
 	// Get the world, view, and projection matrices from the opengl and camera objects.
-	context->getWorldMatrix(modelMatrix);
-	camera->getViewMatrix(viewMatrix);
-	context->getProjectionMatrix(projectionMatrix);
+	glm::mat4 modelMatrix = context->getModelMatrix();
+	glm::mat4 viewMatrix = camera->getViewMatrix();
+	projectionMatrix = context->getProjectionMatrix();
 
 	// Get the light properties.
 	light->getDirection(lightDirection);
@@ -119,11 +146,25 @@ bool Graphics::render() const
 	light->getAmbientLight(ambientLight);
 
 	// Rotate the world matrix by the rotation value so that the triangle will spin.
-	context->matrixRotationY(modelMatrix, rotation);
+	modelMatrix = glm::rotate(modelMatrix, rotation, glm::vec3(0.0f, 1.0f, 0.0f));
 
 	// Set the light shader as the current shader program and set the matrices that it will use for rendering.
 	shader->setShader();
-	shader->setShaderParameters(modelMatrix, viewMatrix, projectionMatrix, 0, lightDirection, diffuseLightColor, ambientLight);
+	if (!shader->setMatrices(&modelMatrix[0][0], &viewMatrix[0][0], &projectionMatrix[0][0]))
+	{
+		return false;
+	}
+
+	// Position the light where the camera is.
+	if (!shader->setLightPosition(0.0f, 0.0f, -10.0f))
+	{
+		return false;
+	}
+
+	if (!shader->setObjectColour(0.5f, 0.5f, 0.5f, 1.0f))
+	{
+		return false;
+	}
 
 	// Render the model using the light shader.
 	model->render();

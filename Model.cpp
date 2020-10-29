@@ -2,229 +2,111 @@
 #include <fstream>
 #include <exception>
 
-Model::Model(const char* modelFilename, const char* textureFilename, unsigned int textureUnit, bool wrap) :
-	vertexCount(0),
-	indexCount(0),
-	vertexArrayId(0),
-	vertexBufferId(0),
-	indexBufferId(0)
+Model::Model(const char* modelFilename, int meshIndex):
+	vao(0),
+	vertVbo(0),
+	normVbo(0),
+	ebo(0)
 {
-	texture = nullptr;
-	type = nullptr;
-
 	// Load in the model data.
-	if (!loadModel(modelFilename))
+	if (!loadModel(modelFilename, meshIndex))
 	{
 		throw std::exception("Cannot load model file!");
 	}
 
 	// Initialize the vertex and index buffers that hold the geometry for the model.
 	initializeBuffers();
-
-	// Load the texture for this model.
-	if (!loadTexture(textureFilename, textureUnit, wrap))
-	{
-		throw std::exception("Cannot load texture!");
-	}
 }
 
 Model::~Model()
 {
-	// Release the texture used for this model.
-	releaseTexture();
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
 
-	// Release the vertex and index buffers.
-	shutdownBuffers();
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glDeleteBuffers(1, &vertVbo);
 
-	// Release the model data.
-	releaseModel();
+	glBindVertexArray(0);
+	glDeleteVertexArrays(1, &vao);
+	glDeleteBuffers(1, &normVbo);
+	glDeleteBuffers(1, &ebo);
 }
 
 void Model::render() const
 {
-	// Put the vertex and index buffers on the graphics pipeline to prepare them for drawing.
-	renderBuffers();
+	glBindVertexArray(vao);
+	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
 }
 
 void Model::initializeBuffers()
 {
-	// Create the vertex array.
-	VertexType* vertices = new VertexType[vertexCount];
+	glGenVertexArrays(1, &vao);
+	glGenBuffers(1, &vertVbo);
+	glGenBuffers(1, &normVbo);
+	glGenBuffers(1, &ebo);
+	
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ARRAY_BUFFER, vertVbo);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
 
-	// Create the index array.
-	unsigned* indices = new unsigned[indexCount];
-
-	// Load the vertex array and index array with data.
-	for (unsigned i = 0; i < vertexCount; i++)
-	{
-		vertices[i].x = type[i].x;
-		vertices[i].y = type[i].y;
-		vertices[i].z = type[i].z;
-		vertices[i].tu = type[i].tu;
-		vertices[i].tv = 1.0f - type[i].tv;
-		vertices[i].nx = type[i].nx;
-		vertices[i].ny = type[i].ny;
-		vertices[i].nz = type[i].nz;
-
-		indices[i] = i;
-	}
-
-	// Allocate an OpenGL vertex array object.
-	glGenVertexArrays(1, &vertexArrayId);
-
-	// Bind the vertex array object to store all the buffers and vertex attributes we create here.
-	glBindVertexArray(vertexArrayId);
-
-	// Generate an ID for the vertex buffer.
-	glGenBuffers(1, &vertexBufferId);
-
-	// Bind the vertex buffer and load the vertex (position, texture, and normal) data into the vertex buffer.
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferId);
-	glBufferData(GL_ARRAY_BUFFER, vertexCount * sizeof(VertexType), vertices, GL_STATIC_DRAW);
-
-	// Enable the three vertex array attributes.
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+	
 	glEnableVertexAttribArray(0);  // Vertex position.
-	glEnableVertexAttribArray(1);  // Texture coordinates.
-	glEnableVertexAttribArray(2);  // Normals.
-
-	// Specify the location and format of the position portion of the vertex buffer.
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferId);
-	glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(VertexType), nullptr);
-
-	// Specify the location and format of the texture coordinate portion of the vertex buffer.
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferId);
-	glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof(VertexType), static_cast<unsigned char*>(nullptr) + (3 * sizeof(float)));
-
-	// Specify the location and format of the normal vector portion of the vertex buffer.
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferId);
-	glVertexAttribPointer(2, 3, GL_FLOAT, false, sizeof(VertexType), static_cast<unsigned char*>(nullptr) + (5 * sizeof(float)));
-
-	// Generate an ID for the index buffer.
-	glGenBuffers(1, &indexBufferId);
-
-	// Bind the index buffer and load the index data into it.
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferId);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexCount * sizeof(unsigned int), indices, GL_STATIC_DRAW);
-
-	// Now that the buffers have been loaded we can release the array data.
-	delete[] vertices;
-	delete[] indices;
-}
-
-void Model::shutdownBuffers() const
-{
-	// Disable the two vertex array attributes.
-	glDisableVertexAttribArray(0);
-	glDisableVertexAttribArray(1);
-
-	// Release the vertex buffer.
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+	
+	glBindBuffer(GL_ARRAY_BUFFER, normVbo);
+	glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), normals.data(), GL_STATIC_DRAW);
+	glEnableVertexAttribArray(1);  // Normals.
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glDeleteBuffers(1, &vertexBufferId);
-
-	// Release the index buffer.
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	glDeleteBuffers(1, &indexBufferId);
-
-	// Release the vertex array object.
-	glBindVertexArray(0);
-	glDeleteVertexArrays(1, &vertexArrayId);
 }
 
-void Model::renderBuffers() const
+bool Model::loadModel(const char* filename, int meshIndex)
 {
-	// Bind the vertex array object that stored all the information about the vertex and index buffers.
-	glBindVertexArray(vertexArrayId);
+	Assimp::Importer importer;
 
-	// Render the vertex buffer using the index buffer.
-	glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, nullptr);
-}
+	const aiScene* scene = importer.ReadFile(filename,
+		aiProcess_CalcTangentSpace |
+		aiProcess_Triangulate |
+		aiProcess_JoinIdenticalVertices |
+		aiProcess_SortByPType);
 
-bool Model::loadTexture(const char* textureFilename, unsigned int textureUnit, bool wrap)
-{
-	// Create the texture object.
-	try
+	if (!scene) 
 	{
-		texture = new Texture(textureFilename, textureUnit, wrap);
-	}
-	catch (const std::exception&)
-	{
+		std::string error = importer.GetErrorString();
 		return false;
+	}
+
+	aiMesh* mesh = scene->mMeshes[meshIndex];
+
+	for (unsigned int i = 0; i < mesh->mNumVertices; i++)
+	{
+		glm::vec3 vector;
+		vector.x = mesh->mVertices[i].x;
+		vector.y = mesh->mVertices[i].y;
+		vector.z = mesh->mVertices[i].z;
+		vertices.emplace_back(vector);
+
+		if (mesh->HasNormals())
+		{
+			vector.x = mesh->mNormals[i].x;
+			vector.y = mesh->mNormals[i].y;
+			vector.z = mesh->mNormals[i].z;
+			normals.emplace_back(vector);
+		}
+	}
+
+	for (unsigned int i = 0; i < mesh->mNumFaces; ++i)
+	{
+		aiFace face = mesh->mFaces[i];
+		for (unsigned int j = 0; j < face.mNumIndices; j++)
+		{
+			indices.emplace_back(face.mIndices[j]);
+		}			
 	}
 
 	return true;
 }
 
-void Model::releaseTexture()
-{
-	// Release the texture object.
-	if (texture)
-	{
-		delete texture;
-	}
-}
-
-bool Model::loadModel(const char* filename)
-{
-	std::ifstream fin;
-	char input;
-
-
-	// Open the model file.
-	fin.open(filename);
-
-	// If it could not open the file then exit.
-	if (fin.fail())
-	{
-		return false;
-	}
-
-	// Read up to the value of vertex count.
-	fin.get(input);
-	while (input != ':')
-	{
-		fin.get(input);
-	}
-
-	// Read in the vertex count.
-	fin >> vertexCount;
-
-	// Set the number of indices to be the same as the vertex count.
-	indexCount = vertexCount;
-
-	// Create the model using the vertex count that was read in.
-	type = new ModelType[vertexCount];
-	if (!type)
-	{
-		return false;
-	}
-
-	// Read up to the beginning of the data.
-	fin.get(input);
-	while (input != ':')
-	{
-		fin.get(input);
-	}
-	fin.get(input);
-	fin.get(input);
-
-	// Read in the vertex data.
-	for (unsigned i = 0; i < vertexCount; i++)
-	{
-		fin >> type[i].x >> type[i].y >> type[i].z;
-		fin >> type[i].tu >> type[i].tv;
-		fin >> type[i].nx >> type[i].ny >> type[i].nz;
-	}
-
-	// Close the model file.
-	fin.close();
-
-	return true;
-}
-
-void Model::releaseModel()
-{
-	if (type)
-	{
-		delete[] type;
-	}
-}

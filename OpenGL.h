@@ -3,6 +3,7 @@
 #include <windows.h>
 #include "glad/glad.h"
 #include "WGL/wgl.h"
+#include <glm/glm.hpp>
 #include <string>
 
 class OpenGL
@@ -14,14 +15,9 @@ public:
 	bool initializeOpenGl(HWND, int, int, float, float, bool);
 	static void beginScene();
 	void endScene() const;
-	void getWorldMatrix(float*);
-	void getProjectionMatrix(float*);
+	glm::mat4 getModelMatrix();
+	glm::mat4 getProjectionMatrix();
 	std::string getVideoCardInfo() const;
-	static void buildIdentityMatrix(float*);
-	void buildPerspectiveFovLhMatrix(float*, float, float, float, float) const;
-	static void matrixRotationY(float*, float);
-	static void matrixTranslation(float*, float, float, float);
-	static void matrixMultiply(float*, float*, float*);
 
 private:
 	bool loadExtensionList();
@@ -32,7 +28,7 @@ private:
 	PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
 	PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
 	PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT;
-	float modelMatrix[16];
-	float projectionMatrix[16];
+	glm::mat4 modelMatrix;
+	glm::mat4 projectionMatrix;
 	std::string videoCardDescription;
 };

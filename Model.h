@@ -1,43 +1,29 @@
 #pragma once
 
-#include "Texture.h"
 #include "glad/glad.h"
+#include <assimp/Importer.hpp>      // C++ importer interface
+#include <assimp/scene.h>           // Output data structure
+#include <assimp/postprocess.h>     // Post processing flags
+#include <glm/glm.hpp>
+#include <vector>
 
 class Model
 {
-	struct VertexType
-	{
-		float x, y, z;
-		float tu, tv;
-		float nx, ny, nz;
-	};
-
-	struct ModelType
-	{
-		float x, y, z;
-		float tu, tv;
-		float nx, ny, nz;
-	};
-
 public:
-	Model(const char* modelFilename, const char* textureFilename, unsigned int textureUnit, bool wrap);
+	Model(const char* modelFilename, int meshIndex = 0);
 	~Model();
 	void render() const;
 
 private:
 	void initializeBuffers();
-	void shutdownBuffers() const;
-	void renderBuffers() const;
-	bool loadTexture(const char*, unsigned int, bool);
-	void releaseTexture();
-	bool loadModel(const char*);
-	void releaseModel();
+	bool loadModel(const char*, int meshIndex);
 
-	unsigned vertexCount;
-	unsigned indexCount;
-	unsigned vertexArrayId;
-	GLuint vertexBufferId;
-	GLuint indexBufferId;
-	Texture* texture;
-	ModelType* type;
+	unsigned vao;
+	unsigned vertVbo;
+	unsigned normVbo;
+	unsigned ebo;
+	
+	std::vector<glm::vec3> vertices;
+	std::vector<glm::vec3> normals;
+	std::vector<unsigned int> indices;
 };

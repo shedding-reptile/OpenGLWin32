@@ -1,17 +1,18 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include <glm/gtc/matrix_transform.hpp>
 #include "OpenGL.h"
 
 OpenGL::OpenGL(HWND parent) :
 	wglChoosePixelFormatARB(nullptr),
 	wglCreateContextAttribsARB(nullptr),
 	wglSwapIntervalEXT(nullptr),
-	modelMatrix{},
 	projectionMatrix{},
 	deviceContext(nullptr),
 	renderingContext(nullptr)
 {
 	hWnd = parent;
+	modelMatrix = glm::mat4(1.0f);
 }
 
 OpenGL::~OpenGL()
@@ -179,22 +180,12 @@ bool OpenGL::initializeOpenGl(HWND hwnd, int screenWidth, int screenHeight, floa
 	// Enable depth testing.
 	glEnable(GL_DEPTH_TEST);
 
-	// Set the polygon winding to front facing for the left handed system.
-	glFrontFace(GL_CW);
-
-	// Enable back face culling.
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
-
-	// Initialize the world/model matrix to the identity matrix.
-	buildIdentityMatrix(modelMatrix);
-
 	// Set the field of view and screen aspect ratio.
 	const float fieldOfView = static_cast<float>(M_PI) / 4.0f;
 	const float screenAspect = static_cast<float>(screenWidth) / static_cast<float>(screenHeight);
 
 	// Build the perspective projection matrix.
-	buildPerspectiveFovLhMatrix(projectionMatrix, fieldOfView, screenAspect, screenNear, screenDepth);
+	projectionMatrix = glm::perspective(fieldOfView, screenAspect, screenNear, screenDepth);
 
 	// Get the name of the video card.
 	const char* vendorString = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
@@ -236,7 +227,6 @@ void OpenGL::endScene() const
 {
 	// Present the back buffer to the screen since rendering is complete.
 	SwapBuffers(deviceContext);
-
 }
 
 bool OpenGL::loadExtensionList()
@@ -263,167 +253,17 @@ bool OpenGL::loadExtensionList()
 	return true;
 }
 
-void OpenGL::getWorldMatrix(float* matrix)
+glm::mat4 OpenGL::getModelMatrix()
 {
-	matrix[0] = modelMatrix[0];
-	matrix[1] = modelMatrix[1];
-	matrix[2] = modelMatrix[2];
-	matrix[3] = modelMatrix[3];
-
-	matrix[4] = modelMatrix[4];
-	matrix[5] = modelMatrix[5];
-	matrix[6] = modelMatrix[6];
-	matrix[7] = modelMatrix[7];
-
-	matrix[8] = modelMatrix[8];
-	matrix[9] = modelMatrix[9];
-	matrix[10] = modelMatrix[10];
-	matrix[11] = modelMatrix[11];
-
-	matrix[12] = modelMatrix[12];
-	matrix[13] = modelMatrix[13];
-	matrix[14] = modelMatrix[14];
-	matrix[15] = modelMatrix[15];
+	return modelMatrix;
 }
 
-void OpenGL::getProjectionMatrix(float* matrix)
+glm::mat4 OpenGL::getProjectionMatrix()
 {
-	matrix[0] = projectionMatrix[0];
-	matrix[1] = projectionMatrix[1];
-	matrix[2] = projectionMatrix[2];
-	matrix[3] = projectionMatrix[3];
-
-	matrix[4] = projectionMatrix[4];
-	matrix[5] = projectionMatrix[5];
-	matrix[6] = projectionMatrix[6];
-	matrix[7] = projectionMatrix[7];
-
-	matrix[8] = projectionMatrix[8];
-	matrix[9] = projectionMatrix[9];
-	matrix[10] = projectionMatrix[10];
-	matrix[11] = projectionMatrix[11];
-
-	matrix[12] = projectionMatrix[12];
-	matrix[13] = projectionMatrix[13];
-	matrix[14] = projectionMatrix[14];
-	matrix[15] = projectionMatrix[15];
+	return projectionMatrix;
 }
 
 std::string OpenGL::getVideoCardInfo() const
 {
 	return videoCardDescription;
-}
-
-void OpenGL::buildIdentityMatrix(float* matrix)
-{
-	matrix[0] = 1.0f;
-	matrix[1] = 0.0f;
-	matrix[2] = 0.0f;
-	matrix[3] = 0.0f;
-
-	matrix[4] = 0.0f;
-	matrix[5] = 1.0f;
-	matrix[6] = 0.0f;
-	matrix[7] = 0.0f;
-
-	matrix[8] = 0.0f;
-	matrix[9] = 0.0f;
-	matrix[10] = 1.0f;
-	matrix[11] = 0.0f;
-
-	matrix[12] = 0.0f;
-	matrix[13] = 0.0f;
-	matrix[14] = 0.0f;
-	matrix[15] = 1.0f;
-}
-
-void OpenGL::buildPerspectiveFovLhMatrix(float* matrix, float fieldOfView, float screenAspect, float screenNear, float screenDepth) const
-{
-	matrix[0] = 1.0f / (screenAspect * tan(fieldOfView * 0.5f));
-	matrix[1] = 0.0f;
-	matrix[2] = 0.0f;
-	matrix[3] = 0.0f;
-
-	matrix[4] = 0.0f;
-	matrix[5] = 1.0f / tan(fieldOfView * 0.5f);
-	matrix[6] = 0.0f;
-	matrix[7] = 0.0f;
-
-	matrix[8] = 0.0f;
-	matrix[9] = 0.0f;
-	matrix[10] = screenDepth / (screenDepth - screenNear);
-	matrix[11] = 1.0f;
-
-	matrix[12] = 0.0f;
-	matrix[13] = 0.0f;
-	matrix[14] = (-screenNear * screenDepth) / (screenDepth - screenNear);
-	matrix[15] = 0.0f;
-}
-
-void OpenGL::matrixRotationY(float* matrix, float angle)
-{
-	matrix[0] = cosf(angle);
-	matrix[1] = 0.0f;
-	matrix[2] = -sinf(angle);
-	matrix[3] = 0.0f;
-
-	matrix[4] = 0.0f;
-	matrix[5] = 1.0f;
-	matrix[6] = 0.0f;
-	matrix[7] = 0.0f;
-
-	matrix[8] = sinf(angle);
-	matrix[9] = 0.0f;
-	matrix[10] = cosf(angle);
-	matrix[11] = 0.0f;
-
-	matrix[12] = 0.0f;
-	matrix[13] = 0.0f;
-	matrix[14] = 0.0f;
-	matrix[15] = 1.0f;
-}
-
-void OpenGL::matrixTranslation(float* matrix, float x, float y, float z)
-{
-	matrix[0] = 1.0f;
-	matrix[1] = 0.0f;
-	matrix[2] = 0.0f;
-	matrix[3] = 0.0f;
-
-	matrix[4] = 0.0f;
-	matrix[5] = 1.0f;
-	matrix[6] = 0.0f;
-	matrix[7] = 0.0f;
-
-	matrix[8] = 0.0f;
-	matrix[9] = 0.0f;
-	matrix[10] = 1.0f;
-	matrix[11] = 0.0f;
-
-	matrix[12] = x;
-	matrix[13] = y;
-	matrix[14] = z;
-	matrix[15] = 1.0f;}
-
-void OpenGL::matrixMultiply(float* result, float* matrix1, float* matrix2)
-{
-	result[0] = (matrix1[0] * matrix2[0]) + (matrix1[1] * matrix2[4]) + (matrix1[2] * matrix2[8]) + (matrix1[3] * matrix2[12]);
-	result[1] = (matrix1[0] * matrix2[1]) + (matrix1[1] * matrix2[5]) + (matrix1[2] * matrix2[9]) + (matrix1[3] * matrix2[13]);
-	result[2] = (matrix1[0] * matrix2[2]) + (matrix1[1] * matrix2[6]) + (matrix1[2] * matrix2[10]) + (matrix1[3] * matrix2[14]);
-	result[3] = (matrix1[0] * matrix2[3]) + (matrix1[1] * matrix2[7]) + (matrix1[2] * matrix2[11]) + (matrix1[3] * matrix2[15]);
-
-	result[4] = (matrix1[4] * matrix2[0]) + (matrix1[5] * matrix2[4]) + (matrix1[6] * matrix2[8]) + (matrix1[7] * matrix2[12]);
-	result[5] = (matrix1[4] * matrix2[1]) + (matrix1[5] * matrix2[5]) + (matrix1[6] * matrix2[9]) + (matrix1[7] * matrix2[13]);
-	result[6] = (matrix1[4] * matrix2[2]) + (matrix1[5] * matrix2[6]) + (matrix1[6] * matrix2[10]) + (matrix1[7] * matrix2[14]);
-	result[7] = (matrix1[4] * matrix2[3]) + (matrix1[5] * matrix2[7]) + (matrix1[6] * matrix2[11]) + (matrix1[7] * matrix2[15]);
-
-	result[8] = (matrix1[8] * matrix2[0]) + (matrix1[9] * matrix2[4]) + (matrix1[10] * matrix2[8]) + (matrix1[11] * matrix2[12]);
-	result[9] = (matrix1[8] * matrix2[1]) + (matrix1[9] * matrix2[5]) + (matrix1[10] * matrix2[9]) + (matrix1[11] * matrix2[13]);
-	result[10] = (matrix1[8] * matrix2[2]) + (matrix1[9] * matrix2[6]) + (matrix1[10] * matrix2[10]) + (matrix1[11] * matrix2[14]);
-	result[11] = (matrix1[8] * matrix2[3]) + (matrix1[9] * matrix2[7]) + (matrix1[10] * matrix2[11]) + (matrix1[11] * matrix2[15]);
-
-	result[12] = (matrix1[12] * matrix2[0]) + (matrix1[13] * matrix2[4]) + (matrix1[14] * matrix2[8]) + (matrix1[15] * matrix2[12]);
-	result[13] = (matrix1[12] * matrix2[1]) + (matrix1[13] * matrix2[5]) + (matrix1[14] * matrix2[9]) + (matrix1[15] * matrix2[13]);
-	result[14] = (matrix1[12] * matrix2[2]) + (matrix1[13] * matrix2[6]) + (matrix1[14] * matrix2[10]) + (matrix1[15] * matrix2[14]);
-	result[15] = (matrix1[12] * matrix2[3]) + (matrix1[13] * matrix2[7]) + (matrix1[14] * matrix2[11]) + (matrix1[15] * matrix2[15]);
 }

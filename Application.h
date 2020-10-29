@@ -11,7 +11,7 @@ public:
 	~Application();
 	void run() const;
 	LRESULT CALLBACK messageHandler(HWND, UINT, WPARAM, LPARAM) const;
-
+	
 private:
 	bool frame() const;
 	bool initWindow(OpenGL*, int&, int&);
@@ -26,6 +26,7 @@ private:
 	OpenGL* openGLContext;
 	Input* input;
 	Graphics* graphics;
+	bool isInit;
 };
 
 static Application* applicationHandle = nullptr;

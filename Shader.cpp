@@ -3,7 +3,7 @@
 #include "OpenGL.h"
 #include <fstream>
 
-Shader::Shader(): vertexShader(0), fragmentShader(0), shaderProgram(0)
+Shader::Shader(): vertexShader(0), fragmentShader(0), program(0)
 {
 	HRSRC hRes = FindResource(nullptr, MAKEINTRESOURCE(IDR_SHADER_V), L"SHADER");
 	LPVOID vs = nullptr;
@@ -41,21 +41,21 @@ Shader::Shader(): vertexShader(0), fragmentShader(0), shaderProgram(0)
 Shader::~Shader()
 {
 	// Detach the vertex and fragment shaders from the program.
-	glDetachShader(shaderProgram, vertexShader);
-	glDetachShader(shaderProgram, fragmentShader);
+	glDetachShader(program, vertexShader);
+	glDetachShader(program, fragmentShader);
 
 	// Delete the vertex and fragment shaders.
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 
 	// Delete the shader program.
-	glDeleteProgram(shaderProgram);
+	glDeleteProgram(program);
 }
 
 void Shader::setShader() const
 {
 	// Install the shader program as part of the current rendering state.
-	glUseProgram(shaderProgram);
+	glUseProgram(program);
 	
 }
 
@@ -94,26 +94,26 @@ bool Shader::initializeShader(const char* vertexShaderBuffer, const char* fragme
 	}
 
 	// Create a shader program object.
-	shaderProgram = glCreateProgram();
+	program = glCreateProgram();
 
 	// Attach the vertex and fragment shader to the program object.
-	glAttachShader(shaderProgram, vertexShader);
-	glAttachShader(shaderProgram, fragmentShader);
+	glAttachShader(program, vertexShader);
+	glAttachShader(program, fragmentShader);
 
 	// Bind the shader input variables.
-	glBindAttribLocation(shaderProgram, 0, "inputPosition");
-	glBindAttribLocation(shaderProgram, 1, "inputTexCoord");
-	glBindAttribLocation(shaderProgram, 2, "inputNormal");
+	glBindAttribLocation(program, 0, "inputPosition");
+	glBindAttribLocation(program, 1, "inputTexCoord");
+	glBindAttribLocation(program, 2, "inputNormal");
 
 	// Link the shader program.
-	glLinkProgram(shaderProgram);
+	glLinkProgram(program);
 
 	// Check the status of the link.
-	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &status);
+	glGetProgramiv(program, GL_LINK_STATUS, &status);
 	if(status != 1)
 	{
 		// If it did not link then write the syntax error message out to a text file for review.
-		outputLinkerErrorMessage(shaderProgram);
+		outputLinkerErrorMessage(program);
 		return false;
 	}
 
@@ -189,10 +189,10 @@ void Shader::outputLinkerErrorMessage(unsigned int programId)
 	fout.close();
 }
 
-bool Shader::setShaderParameters(float* worldMatrix, float* viewMatrix, float* projectionMatrix, int textureUnit, float* lightDirection, float* diffuseLightColor, float* ambientLight) const
+bool Shader::setMatrices(float* worldMatrix, float* viewMatrix, float* projectionMatrix) const
 {
 	// Set the world matrix in the vertex shader.
-	unsigned int location = glGetUniformLocation(shaderProgram, "worldMatrix");
+	unsigned int location = glGetUniformLocation(program, "modelMatrix");
 	if(location == -1)
 	{
 		return false;
@@ -200,7 +200,7 @@ bool Shader::setShaderParameters(float* worldMatrix, float* viewMatrix, float* p
 	glUniformMatrix4fv(location, 1, false, worldMatrix);
 
 	// Set the view matrix in the vertex shader.
-	location = glGetUniformLocation(shaderProgram, "viewMatrix");
+	location = glGetUniformLocation(program, "viewMatrix");
 	if(location == -1)
 	{
 		return false;
@@ -208,44 +208,51 @@ bool Shader::setShaderParameters(float* worldMatrix, float* viewMatrix, float* p
 	glUniformMatrix4fv(location, 1, false, viewMatrix);
 
 	// Set the projection matrix in the vertex shader.
-	location = glGetUniformLocation(shaderProgram, "projectionMatrix");
+	location = glGetUniformLocation(program, "projectionMatrix");
 	if(location == -1)
 	{
 		return false;
 	}
 	glUniformMatrix4fv(location, 1, false, projectionMatrix);
 
-	// Set the texture in the pixel shader to use the data from the first texture unit.
-	location = glGetUniformLocation(shaderProgram, "shaderTexture");
-	if(location == -1)
-	{
-		return false;
-	}
-	glUniform1i(location, textureUnit);
+	return true;
+}
 
-	// Set the light direction in the pixel shader.
-	location = glGetUniformLocation(shaderProgram, "lightDirection");
-	if(location == -1)
+bool Shader::setLightPosition(float x, float y, float z) const
+{
+	unsigned location = glGetUniformLocation(program, "lightPos");
+	if (location == -1)
 	{
 		return false;
 	}
-	glUniform3fv(location, 1, lightDirection);
 
-	// Set the light direction in the pixel shader.
-	location = glGetUniformLocation(shaderProgram, "diffuseLightColor");
-	if(location == -1)
-	{
-		return false;
-	}
-	glUniform4fv(location, 1, diffuseLightColor);
+	float lightPos[3] = { x, y, z };
 
-	// Set the ambient light in the pixel shader.
-	location = glGetUniformLocation(shaderProgram, "ambientLight");
-	if(location == -1)
+	glUniform3fv(location, 1, lightPos);
+
+	location = glGetUniformLocation(program, "viewPos");
+	if (location == -1)
 	{
 		return false;
 	}
-	glUniform4fv(location, 1, ambientLight);
+
+	float viewPos[3] = { x, y, z };
+	glUniform3fv(location, 1, viewPos);
+
+	return true;
+}
+
+bool Shader::setObjectColour(float r, float g, float b, float a) const
+{
+	unsigned location = glGetUniformLocation(program, "objColour");
+	if (location == -1)
+	{
+		return false;
+	}
+
+	float objColour[4] = { r, g, b, a};
+
+	glUniform4fv(location, 1, objColour);
 
 	return true;
 }

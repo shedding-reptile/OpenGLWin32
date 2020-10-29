@@ -14,7 +14,8 @@ Application::Application() :
 	windowClass{},
 	openGLContext(nullptr),
 	input(nullptr),
-	graphics(nullptr)
+	graphics(nullptr),
+	isInit(false)
 {
 	// Create the OpenGL object.
 	openGLContext = new OpenGL(wnd);
@@ -35,6 +36,7 @@ Application::Application() :
 	try
 	{
 		graphics = new Graphics(openGLContext);
+		isInit = true;
 	}
 	catch (const std::exception& e)
 	{
@@ -69,6 +71,11 @@ Application::~Application()
 
 void Application::run() const
 {
+	if (!isInit)
+	{
+		return;
+	}
+
 	MSG msg = {};
 
 	// Loop until there is a quit message from the window or the user.
@@ -104,6 +111,26 @@ bool Application::frame() const
 	if (input->isKeyDown(VK_ESCAPE))
 	{
 		return false;
+	}
+
+	if (input->isKeyDown(VK_UP))
+	{
+		graphics->move(Direction::Up);
+	}
+
+	if (input->isKeyDown(VK_DOWN))
+	{
+		graphics->move(Direction::Down);
+	}
+
+	if (input->isKeyDown(VK_LEFT))
+	{
+		graphics->move(Direction::Left);
+	}
+
+	if (input->isKeyDown(VK_RIGHT))
+	{
+		graphics->move(Direction::Right);
 	}
 
 	// Do the frame processing for the graphics object.

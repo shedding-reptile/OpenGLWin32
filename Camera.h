@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glm/glm.hpp>
+
 class Camera
 {
 private:
@@ -9,24 +11,15 @@ private:
 	};
 
 public:
-	Camera();
-	~Camera();
+	Camera() = default;
+	~Camera() = default;
 
 	void setPosition(float, float, float);
-	void setRotation(float, float, float);
 	void render();
-	void getViewMatrix(float*) const;
+	glm::mat4 getViewMatrix();
 
 private:
-	static void matrixRotationYawPitchRoll(float*, float, float, float);
-	static void transformCoord(VectorType&, float*);
-	void buildViewMatrix(VectorType, VectorType, VectorType);
-
-	float posX;
-	float posY;
-	float posZ;
-	float rotX;
-	float rotY;
-	float rotZ;
-	float viewMatrix[16];
+	
+	glm::vec3 eye;	
+	glm::mat4 viewMatrix;
 };
