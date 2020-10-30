@@ -5,3 +5,7 @@
 /.vs/OpenGLWin32/v16
 /x64/Debug
 packages
+packages
+Release
+x64
+Debug
