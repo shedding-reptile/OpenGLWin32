@@ -7,10 +7,6 @@
 #include "Light.h"
 #include "PxPhysicsAPI.h"
 
-const bool VSYNC_ENABLED = true;
-const float SCREEN_DEPTH = 1000.0f;
-const float SCREEN_NEAR = 0.1f;
-
 enum class Direction { Left, Right, Up, Down };
 
 class Graphics
@@ -31,6 +27,15 @@ private:
 	Camera* camera;
 	Model* model;
 	Shader* shader;
+	Light* light;
 	glm::vec3 camPos;
+	physx::PxDefaultAllocator pxAllocator;
+	physx::PxDefaultErrorCallback	pxErrorCallback;
+	physx::PxFoundation* pxFoundation = nullptr;
+	physx::PxPhysics* physics = nullptr;
+	physx::PxDefaultCpuDispatcher* pxDispatcher = nullptr;
+	physx::PxScene* scene = nullptr;
 	physx::PxMaterial* pxMat = nullptr;
 };
+
+void pxMatToGlmMat(const physx::PxMat44& shapePose, glm::mat4& modelMatrix);

@@ -95,33 +95,6 @@ bool Application::frame() const
 		return false;
 	}
 
-	if (input->isKeyDown(VK_UP))
-	{
-		graphics->move(Direction::Up);
-	}
-
-	if (input->isKeyDown(VK_DOWN))
-	{
-		graphics->move(Direction::Down);
-	}
-
-	if (input->isKeyDown(VK_LEFT))
-	{
-		graphics->move(Direction::Left);
-	}
-
-	if (input->isKeyDown(VK_RIGHT))
-	{
-		graphics->move(Direction::Right);
-	}
-
-	if (input->isKeyDown(VK_SPACE))
-	{
-		graphics->createDynamic();
-		input->keyUp(VK_SPACE);
-	}
-
-	// Do the frame processing for the graphics object.
 	if (!graphics->render())
 	{
 		return false;
@@ -189,6 +162,10 @@ LRESULT CALLBACK Application::messageHandler(HWND hwnd, UINT message, WPARAM wPa
 
 		case VK_RIGHT:
 			graphics->move(Direction::Right);
+			break;
+
+		case VK_SPACE:
+			graphics->createDynamic();
 			break;
 
 		default:
@@ -322,7 +299,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return static_cast<INT_PTR>(FALSE);
 }
 
-std::wstring Application::strToWstr(const std::string str)
+std::wstring strToWstr(const std::string str)
 {
 	const char* mbstr = str.c_str();
 	std::mbstate_t state = std::mbstate_t();
@@ -333,7 +310,7 @@ std::wstring Application::strToWstr(const std::string str)
 	return std::wstring(&wstr[0]);
 }
 
-HRESULT Application::openFile(const std::wstring& fileTypeName, const std::wstring& fileTypeExt, std::string& filePath)
+HRESULT openFile(const std::wstring& fileTypeName, const std::wstring& fileTypeExt, std::string& filePath)
 {
 	HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 	if (SUCCEEDED(hr))

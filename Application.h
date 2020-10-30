@@ -16,9 +16,7 @@ private:
 	bool frame() const;
 	bool initWindow(OpenGL*, int&, int&);
 	void closeWindow();
-    static std::wstring strToWstr(std::string str);
-	HRESULT openFile(const std::wstring& fileTypeName, const std::wstring& fileTypeExt, std::string& filePath);
-
+    
 	HINSTANCE instance;
 	HWND wnd;
 	static const int maxLoadString = 100;
@@ -33,4 +31,6 @@ private:
 	std::atomic<bool> isClosing;
 };
 
+HRESULT openFile(const std::wstring& fileTypeName, const std::wstring& fileTypeExt, std::string& filePath);
+static std::wstring strToWstr(std::string str);
 static Application* applicationHandle = nullptr;

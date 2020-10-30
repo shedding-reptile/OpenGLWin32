@@ -8,9 +8,6 @@ Graphics::Graphics(OpenGL* OpenGL) :
 	model(nullptr),
 	shader(nullptr),
 	light(nullptr),
-	x(0.0f),
-	y(5.0f),
-	z(0.0f),
 	pxFoundation(nullptr),
 	physics(nullptr),
 	pxDispatcher(nullptr),
@@ -69,11 +66,9 @@ bool Graphics::initialize()
 	}
 
 	light = new Light;
-
-	// Initialize the light object.
-	light->setDiffuseColor(1.0f, 1.0f, 1.0f, 1.0f);
-	light->setDirection(1.0f, 0.0f, 0.0f);
-	light->setAmbientLight(0.15f, 0.15f, 0.15f, 1.0f);
+	light->setDiffuseColour({ 1.0f, 1.0f, 1.0f, 1.0f });
+	light->setDirection({ 1.0f, 0.0f, 0.0f });
+	light->setAmbientLight({ 0.15f, 0.15f, 0.15f, 1.0f });
 
 	initPhysics();
 
@@ -128,6 +123,20 @@ void Graphics::move(Direction dir)
 	camera->setPosition(camPos);
 }
 
+bool Graphics::load(const std::string& file)
+{
+	try
+	{
+		model = new Model(file);
+	}
+	catch (const std::exception&)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 void Graphics::createDynamic()
 {
 	physx::PxTransform t = physx::PxTransform(physx::PxVec3(0, 10, 10));
@@ -139,31 +148,19 @@ void Graphics::createDynamic()
 
 bool Graphics::render() const
 {
-	glm::mat4 projectionMatrix;
-	float lightDirection[3];
-	float diffuseLightColor[4];
-	float ambientLight[4];
-
-	// Clear the buffers to begin the scene.
-	context->beginScene();
-
-	// Generate the view matrix based on the camera's position.
-	camera->render();
-
-	// Get the world, view, and projection matrices from the opengl and camera objects.
 	glm::mat4 modelMatrix = context->getModelMatrix();
 	glm::mat4 viewMatrix = camera->getViewMatrix();
-	projectionMatrix = context->getProjectionMatrix();
+	glm::mat4 projectionMatrix = context->getProjectionMatrix();
 
-	// Get the light properties.
-	light->getDirection(lightDirection);
-	light->getDiffuseColor(diffuseLightColor);
-	light->getAmbientLight(ambientLight);
+	glm::vec3 lightDirection = light->getDirection();
+	glm::vec4 diffuseLightColour = light->getDiffuseColor();
+	glm::vec4 ambientLight = light->getAmbientLight();
 
+	context->beginScene();
 
-	// Set the light shader as the current shader program and set the matrices that it will use for rendering.
+	camera->render();
+
 	shader->setShader();
-	
 
 	if (!shader->setLightPosition({ 0.0f, 0.0f, -10.0f }))
 	{
@@ -175,44 +172,69 @@ bool Graphics::render() const
 		return false;
 	}
 
-	scene->simulate(1.0f / 60.0f);
-	scene->fetchResults(true);
-
-	physx::PxScene* scene;
-	PxGetPhysics().getScenes(&scene, 1);
-	physx::PxU32 nbActors = scene->getNbActors(physx::PxActorTypeFlag::eRIGID_DYNAMIC | physx::PxActorTypeFlag::eRIGID_STATIC);
-
-	if (nbActors)
+	if (model)
 	{
-		std::vector<physx::PxRigidActor*> actors(nbActors);
-		scene->getActors(physx::PxActorTypeFlag::eRIGID_DYNAMIC | physx::PxActorTypeFlag::eRIGID_STATIC, reinterpret_cast<physx::PxActor**>(&actors[0]), nbActors);
+		scene->simulate(1.0f / 60.0f);
+		scene->fetchResults(true);
 
-		physx::PxShape* shapes[128];
-		for (physx::PxU32 i = 1; i < static_cast<physx::PxU32>(actors.size()); i++)
+		physx::PxScene* scene;
+		PxGetPhysics().getScenes(&scene, 1);
+		physx::PxU32 nbActors = scene->getNbActors(physx::PxActorTypeFlag::eRIGID_DYNAMIC | physx::PxActorTypeFlag::eRIGID_STATIC);
+
+		if (nbActors)
 		{
-			const physx::PxU32 nbShapes = actors[i]->getNbShapes();
-			PX_ASSERT(nbShapes <= MAX_NUM_ACTOR_SHAPES);
-			actors[i]->getShapes(shapes, nbShapes);
-			const bool sleeping = actors[i]->is<physx::PxRigidDynamic>() ? actors[i]->is<physx::PxRigidDynamic>()->isSleeping() : false;
+			std::vector<physx::PxRigidActor*> actors(nbActors);
+			scene->getActors(physx::PxActorTypeFlag::eRIGID_DYNAMIC | physx::PxActorTypeFlag::eRIGID_STATIC, reinterpret_cast<physx::PxActor**>(&actors[0]), nbActors);
 
-			for (physx::PxU32 j = 0; j < nbShapes; j++)
+			physx::PxShape* shapes[128];
+			for (physx::PxU32 i = 1; i < static_cast<physx::PxU32>(actors.size()); i++)
 			{
-				const physx::PxMat44 shapePose(physx::PxShapeExt::getGlobalPose(*shapes[j], *actors[i]));
-				const physx::PxGeometryHolder h = shapes[j]->getGeometry();
+				const physx::PxU32 nbShapes = actors[i]->getNbShapes();
+				PX_ASSERT(nbShapes <= MAX_NUM_ACTOR_SHAPES);
+				actors[i]->getShapes(shapes, nbShapes);
+				const bool sleeping = actors[i]->is<physx::PxRigidDynamic>() ? actors[i]->is<physx::PxRigidDynamic>()->isSleeping() : false;
 
-				if (!shader->setMatrices(&shapePose.column0.x, &viewMatrix[0][0], &projectionMatrix[0][0]))
+				for (physx::PxU32 j = 0; j < nbShapes; j++)
 				{
-					return false;
-				}
-				const physx::PxBoxGeometry& boxGeom = static_cast<const physx::PxBoxGeometry&>(h.any());
+					const physx::PxMat44 shapePose(physx::PxShapeExt::getGlobalPose(*shapes[j], *actors[i]));
+					const physx::PxGeometryHolder h = shapes[j]->getGeometry();
 
-				modelMatrix = glm::scale(modelMatrix, glm::vec3(boxGeom.halfExtents.x, boxGeom.halfExtents.y, boxGeom.halfExtents.z));
-				model->render();
+					pxMatToGlmMat(shapePose, modelMatrix);
+
+					if (!shader->setMatrices(modelMatrix, viewMatrix, projectionMatrix))
+					{
+						return false;
+					}
+
+					model->render();
+				}
 			}
 		}
 	}
-
 	context->endScene();
 
 	return true;
+}
+
+void pxMatToGlmMat(const physx::PxMat44& shapePose, glm::mat4& modelMatrix)
+{
+	modelMatrix[0][0] = shapePose[0][0];
+	modelMatrix[0][1] = shapePose[0][1];
+	modelMatrix[0][2] = shapePose[0][2];
+	modelMatrix[0][3] = shapePose[0][3];
+
+	modelMatrix[1][0] = shapePose[1][0];
+	modelMatrix[1][1] = shapePose[1][1];
+	modelMatrix[1][2] = shapePose[1][2];
+	modelMatrix[1][3] = shapePose[1][3];
+
+	modelMatrix[2][0] = shapePose[2][0];
+	modelMatrix[2][1] = shapePose[2][1];
+	modelMatrix[2][2] = shapePose[2][2];
+	modelMatrix[2][3] = shapePose[2][3];
+
+	modelMatrix[3][0] = shapePose[3][0];
+	modelMatrix[3][1] = shapePose[3][1];
+	modelMatrix[3][2] = shapePose[3][2];
+	modelMatrix[3][3] = shapePose[3][3];
 }

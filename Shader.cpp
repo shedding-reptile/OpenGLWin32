@@ -124,7 +124,7 @@ void Shader::getProgramError(unsigned int programId)
 	glGetProgramInfoLog(programId, logSize, nullptr, &error[0]);
 }
 
-bool Shader::setMatrices(const float * worldMatrix, const float * viewMatrix, const float * projectionMatrix) const
+bool Shader::setMatrices(glm::mat4 modelMatrix, glm::mat4 viewMatrix, glm::mat4 projectionMatrix) const
 {
 	unsigned int location = glGetUniformLocation(program, "modelMatrix");
 	if(location == -1)
