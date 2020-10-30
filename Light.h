@@ -1,19 +1,22 @@
 #pragma once
 
+#include <glm/glm.hpp>
+
 class Light
 {
 public:
-	Light();
-	~Light();
-	void setDiffuseColor(float, float, float, float);
-	void setDirection(float, float, float);
-	void setAmbientLight(float, float, float, float);
-	void getDiffuseColor(float*);
-	void getDirection(float*);
-	void getAmbientLight(float*);
+
+	Light() = default;
+	~Light() = default;
+	void setDiffuseColour(glm::vec4 colour);
+	void setDirection(glm::vec3 dir);
+	void setAmbientLight(glm::vec4 colour);
+	glm::vec4 getDiffuseColor();
+	glm::vec3 getDirection();
+	glm::vec4 getAmbientLight();
 
 private:
-	float diffuseColor[4] = {};
-	float direction[3] = {};
-	float ambientLight[4] = {};
+	glm::vec4 diffuseColor;
+	glm::vec3 direction;
+	glm::vec4 ambientLight;
 };

@@ -1,22 +1,22 @@
 #pragma once
 
 #include "glad/glad.h"
-#include <assimp/Importer.hpp>      // C++ importer interface
-#include <assimp/scene.h>           // Output data structure
-#include <assimp/postprocess.h>     // Post processing flags
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 #include <glm/glm.hpp>
 #include <vector>
 
 class Model
 {
 public:
-	Model(const char* modelFilename, int meshIndex = 0);
+	Model(const std::string& modelFilename, int meshIndex = 0);
 	~Model();
 	void render() const;
 
 private:
 	void initializeBuffers();
-	bool loadModel(const char*, int meshIndex);
+	bool loadModel(const std::string & filename, int meshIndex);
 
 	unsigned vao;
 	unsigned vertVbo;

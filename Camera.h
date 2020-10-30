@@ -4,17 +4,11 @@
 
 class Camera
 {
-private:
-	struct VectorType 
-	{ 
-		float x, y, z;
-	};
-
 public:
 	Camera() = default;
 	~Camera() = default;
 
-	void setPosition(float, float, float);
+	void setPosition(glm::vec3 pos);
 	void render();
 	glm::mat4 getViewMatrix();
 

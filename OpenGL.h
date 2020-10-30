@@ -11,8 +11,8 @@ class OpenGL
 public:
 	OpenGL(HWND parent);
 	~OpenGL();
-	bool initializeExtensions(HWND);
-	bool initializeOpenGl(HWND, int, int, float, float, bool);
+	bool initializeExtensions(HWND hwnd);
+	bool initializeOpenGl(HWND hwnd, int screenWidth, int screenHeight, float screenDepth, float screenNear, bool vsync);
 	static void beginScene();
 	void endScene() const;
 	glm::mat4 getModelMatrix();

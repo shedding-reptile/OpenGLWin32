@@ -17,7 +17,6 @@ Graphics::Graphics(OpenGL* OpenGL) :
 	scene(nullptr),
 	pxMat(nullptr)
 {
-	// Store a pointer to the OpenGL class object.
 	context = OpenGL;
 
 	if (!initialize())
@@ -28,25 +27,21 @@ Graphics::Graphics(OpenGL* OpenGL) :
 
 Graphics::~Graphics()
 {
-	// Release the light object.
 	if (light)
 	{
 		delete light;
 	}
 
-	// Release the light shader object.
 	if (shader)
 	{
 		delete shader;
 	}
 
-	// Release the model object.
 	if (model)
 	{
 		delete model;
 	}
 
-	// Release the camera object.
 	if (camera)
 	{
 		delete camera;
@@ -60,25 +55,10 @@ Graphics::~Graphics()
 
 bool Graphics::initialize()
 {
-	// Create the camera object.
 	camera = new Camera;
+	camPos = { 0.0f, 0.0f, -10.0f };
+	camera->setPosition(camPos);
 
-	// Set the initial position of the camera.
-	z = -10.0f;
-
-	camera->setPosition(x, y, z);
-
-	// Create the model object.
-	try
-	{
-		model = new Model("monkey.stl");
-	}
-	catch (const std::exception&)
-	{
-		throw;
-	}
-
-	// Create the light shader object.
 	try
 	{
 		shader = new Shader;
@@ -88,7 +68,6 @@ bool Graphics::initialize()
 		throw;
 	}
 
-	// Create the light object.
 	light = new Light;
 
 	// Initialize the light object.
@@ -132,21 +111,21 @@ void Graphics::move(Direction dir)
 	switch (dir)
 	{
 	case Direction::Left:
-		x += 0.1f;
+		camPos.x += 0.1f;
 		break;
 	case Direction::Right:
-		x -= 0.1f;
+		camPos.x -= 0.1f;
 		break;
 	case Direction::Up:
-		z += 0.1f;
+		camPos.z += 0.1f;
 		break;
 	case Direction::Down:
-		z -= 0.1f;
+		camPos.z -= 0.1f;
 		break;
 	default:
 		break;
 	}
-	camera->setPosition(x, y, z);
+	camera->setPosition(camPos);
 }
 
 void Graphics::createDynamic()
@@ -186,13 +165,12 @@ bool Graphics::render() const
 	shader->setShader();
 	
 
-	// Position the light where the camera is.
-	if (!shader->setLightPosition(0.0f, 0.0f, -10.0f))
+	if (!shader->setLightPosition({ 0.0f, 0.0f, -10.0f }))
 	{
 		return false;
 	}
 
-	if (!shader->setObjectColour(0.5f, 0.5f, 0.5f, 1.0f))
+	if (!shader->setObjectColour({ 0.5f, 0.5f, 0.5f, 1.0f }))
 	{
 		return false;
 	}
@@ -234,7 +212,6 @@ bool Graphics::render() const
 		}
 	}
 
-	// Present the rendered scene to the screen.
 	context->endScene();
 
 	return true;

@@ -1,21 +1,26 @@
 #pragma once
 
+#include <glm/glm.hpp>
+#include <string>
+
 class Shader
 {
 public:
 	Shader();
 	~Shader();
 	void setShader() const;
-	bool setMatrices(const float * worldMatrix, const float * viewMatrix, const float * projectionMatrix) const;
-	bool setLightPosition(float x, float y, float z) const;
-	bool setObjectColour(float r, float g, float b, float a) const;
+	bool setMatrices(glm::mat4 modelMatrix, glm::mat4 viewMatrix, glm::mat4 projectionMatrix) const;
+	bool setLightPosition(glm::vec3 pos) const;
+	bool setObjectColour(glm::vec4 colour) const;
+	std::string getError();
 
 private:
 	bool initializeShader(const char*, const char*);
-	static void outputShaderErrorMessage(unsigned int);
-	static void outputLinkerErrorMessage(unsigned int);
+	void getShaderError(unsigned int);
+	void getProgramError(unsigned int);
 	
 	unsigned int vertexShader;
 	unsigned int fragmentShader;
 	unsigned int program;
+	std::string error;
 };

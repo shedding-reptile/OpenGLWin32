@@ -21,6 +21,7 @@ public:
 	bool render() const;
 	void move(Direction dir);
 	void createDynamic();
+    bool load(const std::string &file);
 
 private:
 	bool initialize();
@@ -30,16 +31,6 @@ private:
 	Camera* camera;
 	Model* model;
 	Shader* shader;
-	Light* light;
-	float x;
-	float y;
-	float z;
-
-	physx::PxDefaultAllocator pxAllocator;
-	physx::PxDefaultErrorCallback	pxErrorCallback;
-	physx::PxFoundation* pxFoundation = nullptr;
-	physx::PxPhysics* physics = nullptr;
-	physx::PxDefaultCpuDispatcher* pxDispatcher = nullptr;
-	physx::PxScene* scene = nullptr;
+	glm::vec3 camPos;
 	physx::PxMaterial* pxMat = nullptr;
 };

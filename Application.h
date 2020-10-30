@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Input.h"
 #include "Graphics.h"
 #include <string>
+#include <atomic>
 
 class Application
 {
@@ -10,13 +10,14 @@ public:
 	Application();
 	~Application();
 	void run() const;
-	LRESULT CALLBACK messageHandler(HWND, UINT, WPARAM, LPARAM) const;
+	LRESULT CALLBACK messageHandler(HWND, UINT, WPARAM, LPARAM);
 	
 private:
 	bool frame() const;
 	bool initWindow(OpenGL*, int&, int&);
 	void closeWindow();
     static std::wstring strToWstr(std::string str);
+	HRESULT openFile(const std::wstring& fileTypeName, const std::wstring& fileTypeExt, std::string& filePath);
 
 	HINSTANCE instance;
 	HWND wnd;
@@ -24,9 +25,12 @@ private:
 	WCHAR title[maxLoadString];
 	WCHAR windowClass[maxLoadString];
 	OpenGL* openGLContext;
-	Input* input;
 	Graphics* graphics;
 	bool isInit;
+	const bool VSYNC_ENABLED = true;
+	const float SCREEN_DEPTH = 1000.0f;
+	const float SCREEN_NEAR = 0.1f;
+	std::atomic<bool> isClosing;
 };
 
 static Application* applicationHandle = nullptr;

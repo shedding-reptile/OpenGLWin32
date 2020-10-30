@@ -1,53 +1,31 @@
 #include "Light.h"
 
-Light::Light()
-= default;
-
-Light::~Light()
-= default;
-
-void Light::setDiffuseColor(float red, float green, float blue, float alpha)
+void Light::setDiffuseColour(glm::vec4 colour)
 {
-	diffuseColor[0] = red;
-	diffuseColor[1] = green;
-	diffuseColor[2] = blue;
-	diffuseColor[3] = alpha;
+	diffuseColor = colour;
 }
 
-void Light::setDirection(float x, float y, float z)
+void Light::setDirection(glm::vec3 dir)
 {
-	direction[0] = x;
-	direction[1] = y;
-	direction[2] = z;
+	direction = dir;
 }
 
-void Light::setAmbientLight(float red, float green, float blue, float alpha)
+void Light::setAmbientLight(glm::vec4 colour)
 {
-	ambientLight[0] = red;
-	ambientLight[1] = green;
-	ambientLight[2] = blue;
-	ambientLight[3] = alpha;
+	ambientLight = colour;
 }
 
-void Light::getDiffuseColor(float* color)
+glm::vec4 Light::getDiffuseColor()
 {
-	color[0] = diffuseColor[0];
-	color[1] = diffuseColor[1];
-	color[2] = diffuseColor[2];
-	color[3] = diffuseColor[3];
+	return diffuseColor;
 }
 
-void Light::getDirection(float* dir)
+glm::vec3 Light::getDirection()
 {
-	dir[0] = direction[0];
-	dir[1] = direction[1];
-	dir[2] = direction[2];
+	return direction;
 }
 
-void Light::getAmbientLight(float* ambient)
+glm::vec4 Light::getAmbientLight()
 {
-	ambient[0] = ambientLight[0];
-	ambient[1] = ambientLight[1];
-	ambient[2] = ambientLight[2];
-	ambient[3] = ambientLight[3];
+	return ambientLight;
 }
