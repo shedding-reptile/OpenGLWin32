@@ -2,19 +2,17 @@
 #include <fstream>
 #include <exception>
 
-Model::Model(const char* modelFilename, int meshIndex):
+Model::Model(const std::string &modelFilename, int meshIndex):
 	vao(0),
 	vertVbo(0),
 	normVbo(0),
 	ebo(0)
 {
-	// Load in the model data.
 	if (!loadModel(modelFilename, meshIndex))
 	{
 		throw std::exception("Cannot load model file!");
 	}
 
-	// Initialize the vertex and index buffers that hold the geometry for the model.
 	initializeBuffers();
 }
 
@@ -35,7 +33,7 @@ Model::~Model()
 void Model::render() const
 {
 	glBindVertexArray(vao);
-	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }
 
@@ -53,17 +51,17 @@ void Model::initializeBuffers()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
 	
-	glEnableVertexAttribArray(0);  // Vertex position.
+	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, normVbo);
 	glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), normals.data(), GL_STATIC_DRAW);
-	glEnableVertexAttribArray(1);  // Normals.
+	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-bool Model::loadModel(const char* filename, int meshIndex)
+bool Model::loadModel(const std::string &filename, int meshIndex)
 {
 	Assimp::Importer importer;
 
@@ -109,4 +107,3 @@ bool Model::loadModel(const char* filename, int meshIndex)
 
 	return true;
 }
-
